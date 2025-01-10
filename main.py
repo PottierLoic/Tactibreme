@@ -86,7 +86,6 @@ def main():
     canvas.pack()
 
     board = Board()
-    board.move_paw(board.paws[5], (4, 0))
     draw_grid(canvas)
     draw_paws(canvas, board.paws)
 

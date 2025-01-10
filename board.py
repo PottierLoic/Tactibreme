@@ -102,3 +102,4 @@ class Board:
                         else:
                             break
         return possible_movements
+
