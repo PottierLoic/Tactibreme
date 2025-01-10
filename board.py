@@ -30,6 +30,20 @@ class Board:
     def is_valid_position(self, position: tuple[int, int]) -> bool:
         """
         Check if a position is within the board boundaries.
+        Args:
+          position (tuple[int, int]): The position to check
         """
         row, col = position
         return 0 <= row < 5 and 0 <= col < 5
+
+    def find_paw_at(self, position: tuple[int, int]) -> Paw:
+        """
+        Find a paw at the given position.
+        Args:
+          position (tuple[int, int]): The position to get paw
+        """
+        # TODO: Check for all paws and return a list cause it can be a stack of paws
+        for paw in self.paws:
+            if paw.position == position:
+                return paw
+        return None
