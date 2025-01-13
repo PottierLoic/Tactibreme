@@ -8,12 +8,16 @@ class Board:
         """
         paw_order = [PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
 
-        self.paws: List[Paws] = []
+        self.paws_coverage: dict[tuple[int, int], list[Paw]] = {}
         for i, paw_type in enumerate(paw_order):
-            self.paws.append(Paw(paw_type, "red", (0, i)))
+            pos = (0, i)
+            paw = Paw(paw_type, "red", pos)
+            self.paws_coverage[pos] = [paw]
 
         for i, paw_type in enumerate(paw_order):
-            self.paws.append(Paw(paw_type, "blue", (4, i)))
+            pos = (4, i)
+            paw = Paw(paw_type, "blue", pos)
+            self.paws_coverage[pos] = [paw]
 
     def move_paw(self, paw: Paw, destination: tuple[int, int]) -> None:
         """
@@ -41,12 +45,10 @@ class Board:
         Args:
           position (tuple[int, int]): The position to get paw
         """
-        # TODO: Check for all paws and return a list cause it can be a stack of paws
-        paws = []
-        for paw in self.paws:
-            if paw.position == position:
-                paws.append(paw)
-        return paws
+        if position in self.paws_coverage:
+            return self.paws_coverage[position]
+        else:
+            return []
 
     def possible_movements(self, paw: Paw) -> list[tuple[int, int]]:
         """

@@ -20,23 +20,24 @@ def draw_grid(canvas):
             canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="black")
 
 
-def draw_paws(canvas, paws):
-    for paw in paws:
-        row, col = paw.position
-        x = col * CELL_SIZE + CELL_SIZE / 2
-        y = row * CELL_SIZE + CELL_SIZE / 2
-        radius = CELL_SIZE / (3 + (paw.paw_type.value / 2))
-        canvas.create_oval(
-            x - radius,
-            y - radius,
-            x + radius,
-            y + radius,
-            fill=paw.color,
-            outline="black",
-        )
-        canvas.create_text(
-            x, y, text=paw.paw_type.value, fill="white", font=("Arial", 16, "bold")
-        )
+def draw_paws(canvas: tk.Canvas, paws_coverage: dict[tuple[int, int], list[Paw]]):
+    for position, paws in paws_coverage.items():
+        for paw in paws:
+            row, col = paw.position
+            x = col * CELL_SIZE + CELL_SIZE / 2
+            y = row * CELL_SIZE + CELL_SIZE / 2
+            radius = CELL_SIZE / (3 + (paw.paw_type.value / 2))
+            canvas.create_oval(
+                x - radius,
+                y - radius,
+                x + radius,
+                y + radius,
+                fill=paw.color,
+                outline="black",
+            )
+            canvas.create_text(
+                x, y, text=paw.paw_type.value, fill="white", font=("Arial", 16, "bold")
+            )
 
 
 def on_canvas_click(event, board: Board, canvas: tk.Canvas):
@@ -87,7 +88,7 @@ def main():
 
     board = Board()
     draw_grid(canvas)
-    draw_paws(canvas, board.paws)
+    draw_paws(canvas, board.paws_coverage)
 
     canvas.bind("<Button-1>", lambda event: on_canvas_click(event, board, canvas))
     window.mainloop()
