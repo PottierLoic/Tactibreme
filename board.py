@@ -50,6 +50,7 @@ class Board:
             p.position = destination
         if destination not in self.paws_coverage:
             self.paws_coverage[destination] = []
+
         self.paws_coverage[destination].extend(pawns_to_move)
 
     def is_valid_position(self, position: tuple[int, int]) -> bool:
@@ -140,3 +141,15 @@ class Board:
                     filtered_positions.append(pos)
 
         return filtered_positions
+
+    
+    def check_win(self) -> str:
+        """
+        Checks if there's a winning condition and returns the color of the winner or "none" if no winner.
+        """
+        for paw_list in self.paws_coverage.items():
+            if len(paw_list) >= 4:
+                highest_paw = max(paw_list, key=lambda p: p.paw_type.value)
+                return highest_paw.color
+        return "none"
+
