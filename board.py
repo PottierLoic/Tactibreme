@@ -70,68 +70,41 @@ class Board:
         Args:
           paw (Paw): The paw to check
         """
-        raw_positions = []
-        match paw.paw_type:
-            case PawType.DONKEY:
-                for i in range(5):
-                    if i != paw.position[0]:
-                        raw_positions.append((i, paw.position[1]))
-                    if i != paw.position[1]:
-                        raw_positions.append((paw.position[0], i))
+        directions = {
+            PawType.DONKEY: [(1, 0), (-1, 0), (0, 1), (0, -1)],
+            PawType.DOG: [(1, 1), (1, -1), (-1, 1), (-1, -1)],
+            PawType.ROOSTER: [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)],
+        }
 
-            case PawType.DOG:
-                directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
-                for dx, dy in directions:
-                    step = 1
-                    while True:
-                        nx = paw.position[0] + step * dx
-                        ny = paw.position[1] + step * dy
-                        if 0 <= nx < 5 and 0 <= ny < 5:
-                            raw_positions.append((nx, ny))
-                            step += 1
-                        else:
-                            break
+        moves = []
+        if paw.paw_type in directions:
+            for dx, dy in directions[paw.paw_type]:
+                step = 1
+                while True:
+                    nx, ny = paw.position[0] + step * dx, paw.position[1] + step * dy
+                    if not self.is_valid_position((nx, ny)):
+                        break
+                    occupant = self.find_paw_at((nx, ny))
+                    if occupant:
+                        if occupant[0].paw_type.value < paw.paw_type.value:
+                            moves.append((nx, ny))
+                        break
+                    moves.append((nx, ny))
+                    step += 1
 
-            case PawType.CAT:
-                moves = [
-                    (2, 1), (2, -1), (-2, 1), (-2, -1),
-                    (1, 2), (1, -2), (-1, 2), (-1, -2),
-                ]
-                for dx, dy in moves:
-                    nx, ny = paw.position[0] + dx, paw.position[1] + dy
-                    if 0 <= nx < 5 and 0 <= ny < 5:
-                        raw_positions.append((nx, ny))
+        elif paw.paw_type == PawType.CAT:
+            potential_moves = [
+                (2, 1), (2, -1), (-2, 1), (-2, -1),
+                (1, 2), (1, -2), (-1, 2), (-1, -2),
+            ]
+            for dx, dy in potential_moves:
+                nx, ny = paw.position[0] + dx, paw.position[1] + dy
+                if self.is_valid_position((nx, ny)):
+                    occupant = self.find_paw_at((nx, ny))
+                    if not occupant or occupant[0].paw_type.value < paw.paw_type.value:
+                        moves.append((nx, ny))
 
-            case PawType.ROOSTER:
-                for i in range(5):
-                    if i != paw.position[0]:
-                        raw_positions.append((i, paw.position[1]))
-                    if i != paw.position[1]:
-                        raw_positions.append((paw.position[0], i))
-
-                directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
-                for dx, dy in directions:
-                    step = 1
-                    while True:
-                        nx = paw.position[0] + step * dx
-                        ny = paw.position[1] + step * dy
-                        if 0 <= nx < 5 and 0 <= ny < 5:
-                            raw_positions.append((nx, ny))
-                            step += 1
-                        else:
-                            break
-
-        filtered_positions = []
-        for pos in raw_positions:
-            occupant = self.find_paw_at(pos)
-            if not occupant:
-                filtered_positions.append(pos)
-            else:
-                occupant.sort(key=lambda p: p.paw_type.value, reverse=True)
-                if occupant[0].paw_type.value < paw.paw_type.value:
-                    filtered_positions.append(pos)
-
-        return filtered_positions
+        return moves
 
     
     def check_win(self) -> str:
