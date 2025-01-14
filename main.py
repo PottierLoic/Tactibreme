@@ -87,6 +87,10 @@ def main():
     canvas.pack()
 
     board = Board()
+    board.move_paw(board.paws_coverage[(0, 0)][0], (1, 0))
+    board.move_paw(board.paws_coverage[(0, 1)][0], (1, 0))
+    board.move_paw(board.paws_coverage[(1, 0)][1], (2, 1))
+
     draw_grid(canvas)
     draw_paws(canvas, board.paws_coverage)
 

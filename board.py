@@ -28,7 +28,29 @@ class Board:
         """
         if not self.is_valid_position(destination):
             raise ValueError(f"Invalid destination: {destination}")
-        paw.position = destination
+        if destination not in self.possible_movements(paw):
+            raise ValueError(f"Destination {destination} no possible for paw {paw.paw_type}")
+        paw_at_dest = self.find_paw_at(destination)
+        if len(paw_at_dest) > 0:
+            paw_at_dest.sort(key=lambda p: p.paw_type.value, reverse=True)
+            if paw_at_dest[0].paw_type.value >= paw.paw_type.value:
+                raise ValueError(f"Impossible to move a {paw.paw_type} to {destination} because there is a {paw_at_dest[0].paw_type} there.")
+        origin_pos = paw.position
+        paw_at_origin = self.find_paw_at(origin_pos)
+        pawns_to_move = [p for p in paw_at_origin if p is paw] + [
+            p for p in paw_at_origin
+            if p is not paw and p.paw_type.value > paw.paw_type.value
+        ]
+        self.paws_coverage[origin_pos] = [
+            p for p in paw_at_origin if p not in pawns_to_move
+        ]
+        if not self.paws_coverage[origin_pos]:
+            del self.paws_coverage[origin_pos]
+        for p in pawns_to_move:
+            p.position = destination
+        if destination not in self.paws_coverage:
+            self.paws_coverage[destination] = []
+        self.paws_coverage[destination].extend(pawns_to_move)
 
     def is_valid_position(self, position: tuple[int, int]) -> bool:
         """
@@ -56,14 +78,15 @@ class Board:
         Args:
           paw (Paw): The paw to check
         """
-        possible_movements = []
+        raw_positions = []
         match paw.paw_type:
             case PawType.DONKEY:
                 for i in range(5):
                     if i != paw.position[0]:
-                        possible_movements.append((i, paw.position[1]))
+                        raw_positions.append((i, paw.position[1]))
                     if i != paw.position[1]:
-                        possible_movements.append((paw.position[0], i))
+                        raw_positions.append((paw.position[0], i))
+
             case PawType.DOG:
                 directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
                 for dx, dy in directions:
@@ -72,10 +95,11 @@ class Board:
                         nx = paw.position[0] + step * dx
                         ny = paw.position[1] + step * dy
                         if 0 <= nx < 5 and 0 <= ny < 5:
-                            possible_movements.append((nx, ny))
+                            raw_positions.append((nx, ny))
                             step += 1
                         else:
                             break
+
             case PawType.CAT:
                 moves = [
                     (2, 1), (2, -1), (-2, 1), (-2, -1),
@@ -84,13 +108,14 @@ class Board:
                 for dx, dy in moves:
                     nx, ny = paw.position[0] + dx, paw.position[1] + dy
                     if 0 <= nx < 5 and 0 <= ny < 5:
-                        possible_movements.append((nx, ny))
+                        raw_positions.append((nx, ny))
+
             case PawType.ROOSTER:
                 for i in range(5):
                     if i != paw.position[0]:
-                        possible_movements.append((i, paw.position[1]))
+                        raw_positions.append((i, paw.position[1]))
                     if i != paw.position[1]:
-                        possible_movements.append((paw.position[0], i))
+                        raw_positions.append((paw.position[0], i))
 
                 directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
                 for dx, dy in directions:
@@ -99,9 +124,19 @@ class Board:
                         nx = paw.position[0] + step * dx
                         ny = paw.position[1] + step * dy
                         if 0 <= nx < 5 and 0 <= ny < 5:
-                            possible_movements.append((nx, ny))
+                            raw_positions.append((nx, ny))
                             step += 1
                         else:
                             break
-        return possible_movements
 
+        filtered_positions = []
+        for pos in raw_positions:
+            occupant = self.find_paw_at(pos)
+            if not occupant:
+                filtered_positions.append(pos)
+            else:
+                occupant.sort(key=lambda p: p.paw_type.value, reverse=True)
+                if occupant[0].paw_type.value < paw.paw_type.value:
+                    filtered_positions.append(pos)
+
+        return filtered_positions
