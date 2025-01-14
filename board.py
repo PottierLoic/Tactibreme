@@ -29,28 +29,19 @@ class Board:
         if not self.is_valid_position(destination):
             raise ValueError(f"Invalid destination: {destination}")
         if destination not in self.possible_movements(paw):
-            raise ValueError(f"Destination {destination} no possible for paw {paw.paw_type}")
-        paw_at_dest = self.find_paw_at(destination)
-        if len(paw_at_dest) > 0:
-            paw_at_dest.sort(key=lambda p: p.paw_type.value, reverse=True)
-            if paw_at_dest[0].paw_type.value >= paw.paw_type.value:
-                raise ValueError(f"Impossible to move a {paw.paw_type} to {destination} because there is a {paw_at_dest[0].paw_type} there.")
+            raise ValueError(f"Destination {destination} is not possible for {paw.paw_type}")
         origin_pos = paw.position
         paw_at_origin = self.find_paw_at(origin_pos)
-        pawns_to_move = [p for p in paw_at_origin if p is paw] + [
-            p for p in paw_at_origin
-            if p is not paw and p.paw_type.value > paw.paw_type.value
+        pawns_to_move = [
+            p for p in paw_at_origin if p is paw or p.paw_type.value > paw.paw_type.value
         ]
-        self.paws_coverage[origin_pos] = [
-            p for p in paw_at_origin if p not in pawns_to_move
-        ]
+        self.paws_coverage[origin_pos] = [p for p in paw_at_origin if p not in pawns_to_move]
         if not self.paws_coverage[origin_pos]:
             del self.paws_coverage[origin_pos]
         for p in pawns_to_move:
             p.position = destination
         if destination not in self.paws_coverage:
             self.paws_coverage[destination] = []
-
         self.paws_coverage[destination].extend(pawns_to_move)
 
     def is_valid_position(self, position: tuple[int, int]) -> bool:

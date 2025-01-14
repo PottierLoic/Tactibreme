@@ -21,7 +21,7 @@ class Context:
         for position, paws in self.board.paws_coverage.items():
             sorted_paws = sorted(paws, key=lambda paw: paw.paw_type.value) # TODO: remove when "entonnoir" method is done :)"
             for paw in sorted_paws:
-                row, col = paw.position
+                row, col = position
                 x = col * CELL_SIZE + CELL_SIZE // 2
                 y = row * CELL_SIZE + CELL_SIZE // 2
                 radius = CELL_SIZE // (3 + (paw.paw_type.value / 2))
