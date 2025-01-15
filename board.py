@@ -20,8 +20,9 @@ class Board:
             pos = (4, i)
             paw = Paw(paw_type, Color.BLUE, pos)
             self.paws_coverage[pos] = [paw]
+        self.is_retreat = False
 
-    def move_paw(self, paw: Paw, destination: tuple[int, int]) -> None:
+    def move_paw(self, paw: Paw, destination: tuple[int, int]) -> int:
         """
         Move a paw to a new position.
         Args:
@@ -45,6 +46,12 @@ class Board:
         if destination not in self.paws_coverage:
             self.paws_coverage[destination] = []
         self.paws_coverage[destination].extend(pawns_to_move)
+        if ((destination[0] == 0 and paw.color == Color.RED) or (destination[0] == 4 and paw.color == Color.BLUE)) and self.is_blended(self.paws_coverage[destination], paw.color):
+            return 1
+        return 0
+
+    def valid_retreat_move(self, paw: Paw, destination: tuple[int, int]) -> bool:
+        False # TODO: unclear rule for me
 
     def is_valid_position(self, position: tuple[int, int]) -> bool:
         """
@@ -108,6 +115,8 @@ class Board:
     def get_unicolor_list(self, paws: list[Paw], color: Color) -> list[Paw]:
         return [paw for paw in paws if paw.color == color]
 
+    def is_blended(self, paws: list[Paw], color: Color) -> bool:
+        return len(self.get_unicolor_list(paws, color)) < len(paws)
 
     def check_win(self, position: tuple[int, int]) -> Color:
         """

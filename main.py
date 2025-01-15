@@ -46,8 +46,10 @@ class Context:
             self.selected_paw = None
             self.possible_moves = []
             return
-        self.selected_paw = clicked_paws[0]
-        if self.selected_paw.color == self.game.current_turn:
+
+        filtered_paws = [paw for paw in clicked_paws if paw.color == self.game.current_turn]
+        self.selected_paw = filtered_paws[0] if filtered_paws else None
+        if self.selected_paw:
             self.possible_moves = self.game.board.possible_movements(self.selected_paw)
         else:
             self.possible_moves = []
