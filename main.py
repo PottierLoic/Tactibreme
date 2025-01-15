@@ -33,9 +33,9 @@ class Context:
 
     def highlight_moves(self, screen, moves):
         for row, col in moves:
-            pygame.draw.rect(
-                screen, YELLOW, pygame.Rect(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE), 4
-            )
+            highlight_surface = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
+            highlight_surface.fill((255, 255, 0, 128))
+            screen.blit(highlight_surface, (col * CELL_SIZE, row * CELL_SIZE))
 
     def handle_left_click(self, pos):
         col = pos[0] // CELL_SIZE
