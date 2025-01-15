@@ -101,7 +101,7 @@ class Board:
                 nx, ny = paw.position[0] + dx, paw.position[1] + dy
                 if self.is_valid_position((nx, ny)):
                     occupant = self.find_paw_at((nx, ny))
-                    if not occupant or occupant[0].paw_type.value < paw.paw_type.value:
+                    if not occupant or occupant[0].paw_type.value <= paw.paw_type.value:
                         moves.append((nx, ny))
 
         return moves
