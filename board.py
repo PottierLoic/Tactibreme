@@ -1,5 +1,9 @@
 from paw import Paw, PawType
+from color import Color
 
+class GameFinished(Exception):
+    def __init__(self, winner_color):
+        self.winner_color = winner_color
 
 class Board:
     def __init__(self):
@@ -7,16 +11,14 @@ class Board:
         Represents the game board.
         """
         paw_order = [PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
-
         self.paws_coverage: dict[tuple[int, int], list[Paw]] = {}
         for i, paw_type in enumerate(paw_order):
             pos = (0, i)
-            paw = Paw(paw_type, "red", pos)
+            paw = Paw(paw_type, Color.RED, pos)
             self.paws_coverage[pos] = [paw]
-
         for i, paw_type in enumerate(paw_order):
             pos = (4, i)
-            paw = Paw(paw_type, "blue", pos)
+            paw = Paw(paw_type, Color.BLUE, pos)
             self.paws_coverage[pos] = [paw]
 
     def move_paw(self, paw: Paw, destination: tuple[int, int]) -> None:
@@ -75,7 +77,6 @@ class Board:
             PawType.DOG: [(1, 1), (1, -1), (-1, 1), (-1, -1)],
             PawType.ROOSTER: [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)],
         }
-
         moves = []
         if paw.paw_type in directions:
             for dx, dy in directions[paw.paw_type]:
@@ -91,7 +92,6 @@ class Board:
                         break
                     moves.append((nx, ny))
                     step += 1
-
         elif paw.paw_type == PawType.CAT:
             potential_moves = [
                 (2, 1), (2, -1), (-2, 1), (-2, -1),
@@ -103,17 +103,18 @@ class Board:
                     occupant = self.find_paw_at((nx, ny))
                     if not occupant or occupant[0].paw_type.value <= paw.paw_type.value:
                         moves.append((nx, ny))
-
         return moves
 
-    
-    def check_win(self) -> str:
-        """
-        Checks if there's a winning condition and returns the color of the winner or "none" if no winner.
-        """
-        for paw_list in self.paws_coverage.items():
-            if len(paw_list) >= 4:
-                highest_paw = max(paw_list, key=lambda p: p.paw_type.value)
-                return highest_paw.color
-        return "none"
+    def get_unicolor_list(self, paws: list[Paw], color: Color) -> list[Paw]:
+        return [paw for paw in paws if paw.color == color]
 
+
+    def check_win(self, position: tuple[int, int]) -> Color:
+        """
+        Checks if there's a winning condition and returns the color of the winner or -1 if no winner.
+        """
+        if position in self.paws_coverage:
+            if len(self.paws_coverage[position]) == 4:
+                print(f"situation gagnante, {self.paws_coverage[position]}")
+                return self.paws_coverage[position][-1].color
+        return -1
