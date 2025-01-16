@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 class Network(nn.Module):
-    def __init__(self, input_channels=8, board_size=(5, 5)):
+    def __init__(self, input_channels: int = 8, board_size: tuple[int, int] = (5, 5)) -> None:
         super(Network, self).__init__()
         self.input_channels = input_channels
         self.board_size = board_size
@@ -24,7 +24,7 @@ class Network(nn.Module):
             nn.Linear(128, 100),
         )
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         features = self.conv_layers(x)
         output = self.fc_layers(features)
         return output
