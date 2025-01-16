@@ -1,15 +1,14 @@
-from paw import Paw, PawType
 from color import Color
+from paw import Paw, PawType
+
 
 class GameFinished(Exception):
     def __init__(self, winner_color):
         self.winner_color = winner_color
 
+
 class Board:
-    def __init__(self):
-        """
-        Represents the game board.
-        """
+    def __init__(self) -> None:
         paw_order = [PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
         self.paws_coverage: dict[tuple[int, int], list[Paw]] = {}
         for i, paw_type in enumerate(paw_order):
@@ -26,19 +25,27 @@ class Board:
         """
         Move a paw to a new position.
         Args:
-          paw (Paw): The paw to move.
-          destination (Tuple[int, int]): The new position (row, col).
+            paw (Paw): The paw to move.
+            destination (tuple[int, int]): The new position (row, col).
+        Returns:
+            int: 1 if this move leads a retreat, 0 otherwise.
         """
         if not self.is_valid_position(destination):
             raise ValueError(f"Invalid destination: {destination}")
         if destination not in self.possible_movements(paw):
-            raise ValueError(f"Destination {destination} is not possible for {paw.paw_type}")
+            raise ValueError(
+                f"Destination {destination} is not possible for {paw.paw_type}"
+            )
         origin_pos = paw.position
         paw_at_origin = self.find_paw_at(origin_pos)
         pawns_to_move = [
-            p for p in paw_at_origin if p is paw or p.paw_type.value > paw.paw_type.value
+            p
+            for p in paw_at_origin
+            if p is paw or p.paw_type.value > paw.paw_type.value
         ]
-        self.paws_coverage[origin_pos] = [p for p in paw_at_origin if p not in pawns_to_move]
+        self.paws_coverage[origin_pos] = [
+            p for p in paw_at_origin if p not in pawns_to_move
+        ]
         if not self.paws_coverage[origin_pos]:
             del self.paws_coverage[origin_pos]
         for p in pawns_to_move:
@@ -46,27 +53,42 @@ class Board:
         if destination not in self.paws_coverage:
             self.paws_coverage[destination] = []
         self.paws_coverage[destination].extend(pawns_to_move)
-        if ((destination[0] == 0 and paw.color == Color.RED) or (destination[0] == 4 and paw.color == Color.BLUE)) and self.is_blended(self.paws_coverage[destination], paw.color):
+        if (
+            (destination[0] == 0 and paw.color == Color.RED)
+            or (destination[0] == 4 and paw.color == Color.BLUE)
+        ) and self.is_blended(self.paws_coverage[destination], paw.color):
             return 1
         return 0
 
     def valid_retreat_move(self, paw: Paw, destination: tuple[int, int]) -> bool:
-        False # TODO: unclear rule for me
+        """
+        Check if a move is a valid retreat move.
+        Args:
+            paw (Paw): The paw to move.
+            destination (tuple[int, int]): The destination to check.
+        Returns:
+            bool: True if it is a valid retreat move, False otherwise.
+        """
+        return False  # TODO: unclear rule for me
 
     def is_valid_position(self, position: tuple[int, int]) -> bool:
         """
         Check if a position is within the board boundaries.
         Args:
-          position (tuple[int, int]): The position to check
+            position (tuple[int, int]): The position to check (row, col).
+        Returns:
+            bool: True if the position is valid, False otherwise.
         """
         row, col = position
         return 0 <= row < 5 and 0 <= col < 5
 
     def find_paw_at(self, position: tuple[int, int]) -> list[Paw]:
         """
-        Find a paw at the given position.
+        Find all paws at the given position.
         Args:
-          position (tuple[int, int]): The position to get paw
+            position (tuple[int, int]): The position from which to retrieve paws.
+        Returns:
+            list[Paw]: A list of paws at the given position, or an empty list if none.
         """
         if position in self.paws_coverage:
             return self.paws_coverage[position]
@@ -75,14 +97,25 @@ class Board:
 
     def possible_movements(self, paw: Paw) -> list[tuple[int, int]]:
         """
-        Return a list of all possible movements for a Paw
+        Return a list of all possible movements for a given paw.
         Args:
-          paw (Paw): The paw to check
+            paw (Paw): The paw to check.
+        Returns:
+            list[tuple[int, int]]: A list of valid destinations for this paw.
         """
         directions = {
             PawType.DONKEY: [(1, 0), (-1, 0), (0, 1), (0, -1)],
             PawType.DOG: [(1, 1), (1, -1), (-1, 1), (-1, -1)],
-            PawType.ROOSTER: [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)],
+            PawType.ROOSTER: [
+                (1, 0),
+                (-1, 0),
+                (0, 1),
+                (0, -1),
+                (1, 1),
+                (1, -1),
+                (-1, 1),
+                (-1, -1),
+            ],
         }
         moves = []
         if paw.paw_type in directions:
@@ -101,8 +134,14 @@ class Board:
                     step += 1
         elif paw.paw_type == PawType.CAT:
             potential_moves = [
-                (2, 1), (2, -1), (-2, 1), (-2, -1),
-                (1, 2), (1, -2), (-1, 2), (-1, -2),
+                (2, 1),
+                (2, -1),
+                (-2, 1),
+                (-2, -1),
+                (1, 2),
+                (1, -2),
+                (-1, 2),
+                (-1, -2),
             ]
             for dx, dy in potential_moves:
                 nx, ny = paw.position[0] + dx, paw.position[1] + dy
@@ -113,14 +152,35 @@ class Board:
         return moves
 
     def get_unicolor_list(self, paws: list[Paw], color: Color) -> list[Paw]:
+        """
+        Get a list of paws that all have the specified color.
+        Args:
+            paws (list[Paw]): The list of paws to filter.
+            color (Color): The color to match.
+        Returns:
+            list[Paw]: A list of paws matching the specified color.
+        """
         return [paw for paw in paws if paw.color == color]
 
     def is_blended(self, paws: list[Paw], color: Color) -> bool:
+        """
+        Check if a set of paws is 'blended' relative to a given color.
+        Args:
+            paws (list[Paw]): The list of paws to check.
+            color (Color): The reference color for checking.
+        Returns:
+            bool: True if there's at least one paw of a different color, False otherwise
+        """
         return len(self.get_unicolor_list(paws, color)) < len(paws)
 
-    def check_win(self, position: tuple[int, int]) -> Color:
+    def check_win(self, position: tuple[int, int]) -> Color | int:
         """
-        Checks if there's a winning condition and returns the color of the winner or -1 if no winner.
+        Check if there's a winning condition on the given position
+        Args:
+            position (tuple[int, int]): The board position to check.
+        Returns:
+            Color | int: The color of the winner if there's a winning condition,
+                         otherwise -1 if no winning condition is met.
         """
         if position in self.paws_coverage:
             if len(self.paws_coverage[position]) == 4:
