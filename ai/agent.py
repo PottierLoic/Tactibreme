@@ -1,10 +1,13 @@
 import random
-import torch
-from torch import nn, Tensor
-from typing import List, Tuple, Deque
 from collections import deque
+from typing import Deque, List, Tuple
+
+import torch
+from torch import Tensor, nn
+
 from board import Board
 from color import Color
+
 
 class Agent:
     def __init__(
@@ -30,8 +33,12 @@ class Agent:
         self.network: nn.Module = network
         self.epsilon: float = epsilon
         self.gamma: float = gamma
-        self.optimizer: torch.optim.Optimizer = torch.optim.Adam(self.network.parameters(), lr=learning_rate)
-        self.memory: Deque[Tuple[Tensor, int, float, Tensor, bool]] = deque(maxlen=buffer_size)
+        self.optimizer: torch.optim.Optimizer = torch.optim.Adam(
+            self.network.parameters(), lr=learning_rate
+        )
+        self.memory: Deque[Tuple[Tensor, int, float, Tensor, bool]] = deque(
+            maxlen=buffer_size
+        )
         self.criterion: nn.Module = nn.MSELoss()
 
     def encode_board(self, board: Board) -> Tensor:
@@ -67,11 +74,72 @@ class Agent:
             mask[flat_index] = 1
         return mask
 
-    def select_action(self, board: Board, valid_moves: List[Tuple[int, Tuple[int, int]]]) -> Tuple[int, Tuple[int, int]]:
-        pass
+    def select_action(
+        self, board: Board, valid_moves: List[Tuple[int, Tuple[int, int]]]
+    ) -> Tuple[int, Tuple[int, int]]:
+        """
+        Select an action based on the current policy.
+        Args:
+            board (Board): The current board state.
+            valid_moves (list): List of valid moves (paw_index, destination). # TODO
+        Returns:
+            tuple: Selected (paw_index, destination).
+        """
+        if random.random() < self.epsilon:
+            return random.choice(valid_moves)
 
-    def store_transition(self, state: Tensor, action: int, reward: float, next_state: Tensor, done: bool) -> None:
-        pass
+        encoded_board = self.encode_board(board)
+        output = self.network(encoded_board.unsqueeze(0)).detach().squeeze()
+        mask = self.create_mask(valid_moves)
+
+        masked_output = output * mask
+        masked_output[mask == 0] = -float("inf")
+
+        best_move_index = torch.argmax(masked_output).item()
+        paw_index = best_move_index // 25
+        destination_index = best_move_index % 25
+        row, col = destination_index // 5, destination_index % 5
+        return paw_index, (row, col)
+
+    def store_transition(
+        self, state: Tensor, action: int, reward: float, next_state: Tensor, done: bool
+    ) -> None:
+        """
+        Store a transition in the replay buffer.
+        Args:
+            state (Tensor): Current state.
+            action (int): Action taken.
+            reward (float): Reward received.
+            next_state (Tensor): Next state.
+            done (bool): Whether the game is over.
+        """
+        self.memory.append((state, action, reward, next_state, done))
 
     def train(self, batch_size: int = 32) -> None:
-        pass
+        """
+        Train the network using experience replay.
+        Args:
+            batch_size (int): Number of transitions to sample from the replay buffer.
+        """
+        if len(self.memory) < batch_size:
+            return
+
+        batch = random.sample(self.memory, batch_size)
+        states, actions, rewards, next_states, dones = zip(*batch)
+
+        states = torch.cat(states)
+        actions = torch.tensor(actions, dtype=torch.long)
+        rewards = torch.tensor(rewards, dtype=torch.float32)
+        next_states = torch.cat(next_states)
+        dones = torch.tensor(dones, dtype=torch.float32)
+
+        q_values = self.network(states)
+        q_values = q_values.gather(1, actions.unsqueeze(-1)).squeeze()
+
+        next_q_values = self.network(next_states).max(1)[0]
+        targets = rewards + self.gamma * next_q_values * (1 - dones)
+
+        loss = self.criterion(q_values, targets)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
