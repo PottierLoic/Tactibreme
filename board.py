@@ -60,16 +60,26 @@ class Board:
             return 1
         return 0
 
-    def valid_retreat_move(self, paw: Paw, destination: tuple[int, int]) -> bool:
+    def valid_retreat_move(self, paw: Paw, destination: tuple[int, int], retreat_position: tuple[int, int]) -> int:
         """
         Check if a move is a valid retreat move.
         Args:
             paw (Paw): The paw to move.
             destination (tuple[int, int]): The destination to check.
+            retreat_position (tuple[int, int]): The position where the retreat appears.
         Returns:
-            bool: True if it is a valid retreat move, False otherwise.
+            Int: 0 -> movement not valid
+                 1 -> movement valid
+                -1 -> movement valid BUT no moves possible
         """
-        return False  # TODO: unclear rule for me
+        if paw.position == retreat_position:
+            unicolor_list = self.get_unicolor_list(self.paws_coverage[retreat_position], paw.color)
+            print(f"{unicolor_list[0]} && {paw}")
+            if unicolor_list[0] == paw:
+                if len(self.possible_movements(paw)) != 0:
+                    return 1
+                return -1
+        return 0
 
     def is_valid_position(self, position: tuple[int, int]) -> bool:
         """
