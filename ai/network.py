@@ -1,5 +1,5 @@
 import torch
-from torch import nn
+from torch import nn, Tensor
 
 class Network(nn.Module):
     def __init__(self, input_channels: int = 8, board_size: tuple[int, int] = (5, 5)) -> None:

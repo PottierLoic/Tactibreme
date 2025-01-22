@@ -89,7 +89,7 @@ class Agent:
             return random.choice(valid_moves)
 
         encoded_board = self.encode_board(board)
-        output = self.network(encoded_board.unsqueeze(0)).detach().squeeze()
+        output = self.network(encoded_board).detach().squeeze()
         mask = self.create_mask(valid_moves)
 
         masked_output = output * mask
