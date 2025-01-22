@@ -1,6 +1,8 @@
 from enum import Enum
 from board import Board, GameFinished
 from color import Color
+from ai.network import Network
+from ai.agent import Agent
 
 class Game:
     def __init__(self):
@@ -10,6 +12,16 @@ class Game:
         self.agent2 = Color.RED
         # self.retreat_activated = False
         # self.retreat_position = None
+
+        self.network = Network()
+        self.agent_red = Agent(
+            color=Color.RED,
+            network=self.network,
+            epsilon=0.1,
+            gamma=0.99,
+            learning_rate=1e-3,
+            buffer_size=10000
+        )
 
     def play_turn(self, selected_paw, destination):
         """
@@ -35,3 +47,55 @@ class Game:
         if self.board.check_win(destination) != -1:
           raise GameFinished(self.current_turn)
         self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
+
+        if self.current_turn == Color.RED:
+            self.play_ai_turn()
+
+    def play_ai_turn(self):
+        valid_moves = self.get_valid_moves(Color.RED)
+        
+        if not valid_moves:
+            print("AI has no valid moves.")
+            return
+
+        state_tensor = self.agent_red.encode_board(self.board)
+        print(f"State Tensor Shape: {state_tensor.shape}")
+        
+        move = self.agent_red.select_action(self.board, valid_moves)
+        print(f"AI selected move: {move}")
+
+        if move:
+            paw_index, destination = move
+            all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
+            red_paws = self.board.get_unicolor_list(all_paws, Color.RED)
+            
+            paw_to_move = red_paws[paw_index]
+            
+            result = self.play_turn(paw_to_move, destination)
+            if isinstance(result, str):
+                print(result)
+        else:
+            print("AI could not make a move.")
+
+    def get_valid_moves(self, color: Color) -> list[tuple[int, tuple[int, int]]]:
+        """
+        Retrieve all possible moves for the given color.
+
+        Args:
+            color (Color): The color to get moves from.
+
+        Returns:
+            list[tuple[int, tuple[int, int]]]: A list of (paw_index, destination).
+        """
+        valid_moves = []
+
+        all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
+
+        paws = self.board.get_unicolor_list(all_paws, color)
+
+        for index, paw in enumerate(paws):
+            possible_moves = self.board.possible_movements(paw)
+            for destination in possible_moves:
+                valid_moves.append((index, destination))
+        print(valid_moves)
+        return valid_moves
