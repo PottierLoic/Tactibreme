@@ -68,7 +68,9 @@ class Board:
             return 1
         return 0
 
-    def valid_retreat_move(self, paw: Paw, destination: tuple[int, int], retreat_position: tuple[int, int]) -> int:
+    def valid_retreat_move(
+        self, paw: Paw, destination: tuple[int, int], retreat_position: tuple[int, int]
+    ) -> int:
         """
         Check if a move is a valid retreat move.
         Args:
@@ -81,7 +83,9 @@ class Board:
                 -1 -> movement valid BUT no moves possible
         """
         if paw.position == retreat_position:
-            unicolor_list = self.get_unicolor_list(self.paws_coverage[retreat_position], paw.color)
+            unicolor_list = self.get_unicolor_list(
+                self.paws_coverage[retreat_position], paw.color
+            )
             print(f"{unicolor_list[0]} && {paw}")
             if unicolor_list[0] == paw:
                 if len(self.possible_movements(paw)) != 0:
@@ -205,3 +209,26 @@ class Board:
                 print(f"situation gagnante, {self.paws_coverage[position]}")
                 return self.paws_coverage[position][-1].color
         return -1
+
+    def get_valid_moves(self, color: Color) -> list[tuple[int, tuple[int, int]]]:
+        """
+        Retrieve all possible moves for the given color.
+
+        Args:
+            color (Color): The color to get moves from.
+
+        Returns:
+            list[tuple[int, tuple[int, int]]]: A list of (paw_index, destination).
+        """
+        valid_moves = []
+
+        all_paws = [paw for paw_list in self.paws_coverage.values() for paw in paw_list]
+
+        paws = self.get_unicolor_list(all_paws, color)
+
+        for index, paw in enumerate(paws):
+            possible_moves = self.possible_movements(paw)
+            for destination in possible_moves:
+                valid_moves.append((index, destination))
+        print(valid_moves)
+        return valid_moves
