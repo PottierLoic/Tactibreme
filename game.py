@@ -69,10 +69,16 @@ class Game:
             paw_index, destination = move
             all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
             red_paws = self.board.get_unicolor_list(all_paws, Color.RED)
+
+            selected_paw = red_paws[paw_index]
+
+            result = self.play_turn(selected_paw, destination)
             
-            paw_to_move = red_paws[paw_index]
-            
-            result = self.play_turn(paw_to_move, destination)
+            reward = 0 # palceholder
+            next_state_tensor = self.agent_red.encode_board(self.board)
+            self.agent_red.store_transition(state_tensor, move, reward, next_state_tensor, done=False)
+            self.agent_red.train(batch_size=32)
+    
             if isinstance(result, str):
                 print(result)
         else:
