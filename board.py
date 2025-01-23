@@ -86,7 +86,6 @@ class Board:
             unicolor_list = self.get_unicolor_list(
                 self.paws_coverage[retreat_position], paw.color
             )
-            print(f"{unicolor_list[0]} && {paw}")
             if unicolor_list[0] == paw:
                 if len(self.possible_movements(paw)) != 0:
                     return 1
@@ -230,5 +229,4 @@ class Board:
             possible_moves = self.possible_movements(paw)
             for destination in possible_moves:
                 valid_moves.append((index, destination))
-        print(valid_moves)
         return valid_moves

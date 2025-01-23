@@ -117,6 +117,8 @@ def main() -> None:
                     controller.handle_arrow_key()
                 elif event.key == pygame.K_DOWN:
                     controller.handle_arrow_key()
+        if not controller.game.real_player:
+            controller.game.play_turn()
     pygame.quit()
 
 
