@@ -54,14 +54,14 @@ class Game:
 
     def play_ai_turn(self):
         valid_moves = self.get_valid_moves(Color.RED)
-        
+
         if not valid_moves:
             print("AI has no valid moves.")
             return
 
         state_tensor = self.agent_red.encode_board(self.board)
         print(f"State Tensor Shape: {state_tensor.shape}")
-        
+
         move = self.agent_red.select_action(self.board, valid_moves)
         print(f"AI selected move: {move}")
 
@@ -73,12 +73,12 @@ class Game:
             selected_paw = red_paws[paw_index]
 
             result = self.play_turn(selected_paw, destination)
-            
+
             reward = 0 # palceholder
             next_state_tensor = self.agent_red.encode_board(self.board)
             self.agent_red.store_transition(state_tensor, move, reward, next_state_tensor, done=False)
             self.agent_red.train(batch_size=32)
-    
+
             if isinstance(result, str):
                 print(result)
         else:
