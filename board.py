@@ -1,4 +1,5 @@
 from color import Color
+import random
 from paw import Paw, PawType
 
 
@@ -15,13 +16,20 @@ class Retreat:
 
 class Board:
     def __init__(self) -> None:
-        paw_order = [PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
+        random.seed(42)
+        paws = [PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER, -1]
         self.paws_coverage: dict[tuple[int, int], list[Paw]] = {}
-        for i, paw_type in enumerate(paw_order):
+        random.shuffle(paws)
+        for i, paw_type in enumerate(paws):
+            if paw_type == -1:
+                continue
             pos = (0, i)
             paw = Paw(paw_type, Color.RED, pos)
             self.paws_coverage[pos] = [paw]
-        for i, paw_type in enumerate(paw_order):
+        random.shuffle(paws)
+        for i, paw_type in enumerate(paws):
+            if paw_type == -1:
+                continue
             pos = (4, i)
             paw = Paw(paw_type, Color.BLUE, pos)
             self.paws_coverage[pos] = [paw]
