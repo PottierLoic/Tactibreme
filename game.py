@@ -3,6 +3,7 @@ from enum import Enum
 from ai.agent import Agent
 from ai.network import Network
 from board import Board, GameFinished
+from paw import Paw
 from color import Color
 
 
@@ -34,7 +35,7 @@ class Game:
             buffer_size=10000,
         )
 
-    def reset_game(self):
+    def reset_game(self) -> None:
         """
         Resets the game to its initial state to start a new round.
         """
@@ -44,7 +45,7 @@ class Game:
         self.retreat_position = None
         print("Game has been reset. A new game starts!")
 
-    def process_move(self, selected_paw, destination):
+    def process_move(self, selected_paw: Paw, destination: tuple[int, int]) -> None:
         """
         Handles the logic for moving a pawn and checking for retreat activation.
 
@@ -66,7 +67,7 @@ class Game:
             self.reset_game()
             return
 
-    def play_turn(self, selected_paw = None, destination = None):
+    def play_turn(self, selected_paw: Paw = None, destination: tuple[int, int] = None) -> None:
         """
         Execute a turn in the game. If real_player is False, AI agents take turns automatically.
         Otherwise, the human player controls their pieces.

@@ -23,7 +23,7 @@ class Paw:
         """
         self.paw_type = paw_type
         self.color = color
-        self.position = position  # TODO: find a way to remove this
+        self.position = position
 
     def __repr__(self) -> str:
         return f"{self.color}-{self.paw_type}"

@@ -4,7 +4,7 @@ from board import GameFinished
 from constants import *
 from game import Game
 from paw import Paw
-
+from ui import *
 
 class Context:
     def __init__(self) -> None:
@@ -96,6 +96,7 @@ def main() -> None:
     screen = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
     pygame.display.set_caption("Les Tacticiens de Brême")
     controller = Context()
+    start_plotting_thread(controller.game)
     running = True
     while running:
         screen.fill(BLACK)
