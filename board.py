@@ -6,6 +6,11 @@ class GameFinished(Exception):
     def __init__(self, winner_color):
         self.winner_color = winner_color
 
+class Retreat:
+    def __init__(self):
+        self.is_activated = False
+        self.position = None
+        self.activator_color = None
 
 class Board:
     def __init__(self) -> None:
@@ -19,9 +24,9 @@ class Board:
             pos = (4, i)
             paw = Paw(paw_type, Color.BLUE, pos)
             self.paws_coverage[pos] = [paw]
-        self.is_retreat = False
+        self.retreat_status = Retreat()
 
-    def move_paw(self, paw: Paw, destination: tuple[int, int]) -> int:
+    def move_paw(self, paw: Paw, destination: tuple[int, int]):
         """
         Move a paw to a new position.
         Args:
@@ -57,8 +62,10 @@ class Board:
             (destination[0] == 0 and paw.color == Color.RED)
             or (destination[0] == 4 and paw.color == Color.BLUE)
         ) and self.is_blended(self.paws_coverage[destination], paw.color):
-            return 1
-        return 0
+            self.retreat_status.is_activated = True
+            self.retreat_status.position = destination
+            self.retreat_status.activator_color = paw.color
+            print("RETREAT ACTIVATED.")
 
     def valid_retreat_move(self, paw: Paw, destination: tuple[int, int], retreat_position: tuple[int, int]) -> int:
         """
@@ -113,6 +120,10 @@ class Board:
         Returns:
             list[tuple[int, int]]: A list of valid destinations for this paw.
         """
+        if (self.retreat_status.is_activated):
+            if (paw.color != self.retreat_status.activator_color):
+
+                print("MOUVEMENTS REDUITS")
         directions = {
             PawType.DONKEY: [(1, 0), (-1, 0), (0, 1), (0, -1)],
             PawType.DOG: [(1, 1), (1, -1), (-1, 1), (-1, -1)],
