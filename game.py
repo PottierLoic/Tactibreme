@@ -5,6 +5,7 @@ from ai.network import Network
 from board import Board, GameFinished
 from paw import Paw
 from color import Color
+from reward import calculate_reward
 
 
 class Game:
@@ -99,8 +100,8 @@ class Game:
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
                 agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
                 selected_paw = agent_paws[paw_index]
+                reward = calculate_reward(self.board, move, self.current_turn)
                 self.process_move(selected_paw, destination)
-                reward = 0  # Placeholder for reward
                 next_state_tensor = current_agent.encode_board(self.board)
                 current_agent.store_transition(state_tensor, move, reward, next_state_tensor, done=False)
                 current_agent.train(batch_size=32)
