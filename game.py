@@ -20,7 +20,7 @@ class Game:
         self.network1 = Network()
         self.network2 = Network()
         self.agent1 = Agent(
-            color=Color.RED,
+            color=Color.BLUE,
             network=self.network1,
             epsilon=0.1,
             gamma=0.99,
