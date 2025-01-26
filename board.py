@@ -11,6 +11,7 @@ class Retreat:
         self.is_activated = False
         self.position = None
         self.activator_color = None
+        self.paw_to_move = None
 
 class Board:
     def __init__(self) -> None:
@@ -41,6 +42,7 @@ class Board:
             raise ValueError(
                 f"Destination {destination} is not possible for {paw.paw_type}"
             )
+        self.retreat_status.is_activated = False
         origin_pos = paw.position
         paw_at_origin = self.find_paw_at(origin_pos)
         pawns_to_move = [
@@ -62,10 +64,17 @@ class Board:
             (destination[0] == 0 and paw.color == Color.RED)
             or (destination[0] == 4 and paw.color == Color.BLUE)
         ) and self.is_blended(self.paws_coverage[destination], paw.color):
+            print("retraite activée par ", paw.color)
             self.retreat_status.is_activated = True
             self.retreat_status.position = destination
             self.retreat_status.activator_color = paw.color
-            print("RETREAT ACTIVATED.")
+            self.retreat_status.paw_to_move = self.get_biggest_paw(self.other_color(paw.color), self.paws_coverage[destination])
+
+    def other_color(self, color: Color) -> Color:
+        return Color((color.value + 1) % 2)
+
+    def get_biggest_paw(self, color: Color, paws: list[Paw]) -> Paw:
+        return sorted(self.get_unicolor_list(paws, color), key=lambda paw: paw.paw_type.value)[0]
 
     def valid_retreat_move(self, paw: Paw, destination: tuple[int, int], retreat_position: tuple[int, int]) -> int:
         """
@@ -81,7 +90,6 @@ class Board:
         """
         if paw.position == retreat_position:
             unicolor_list = self.get_unicolor_list(self.paws_coverage[retreat_position], paw.color)
-            print(f"{unicolor_list[0]} && {paw}")
             if unicolor_list[0] == paw:
                 if len(self.possible_movements(paw)) != 0:
                     return 1
@@ -112,18 +120,7 @@ class Board:
         else:
             return []
 
-    def possible_movements(self, paw: Paw) -> list[tuple[int, int]]:
-        """
-        Return a list of all possible movements for a given paw.
-        Args:
-            paw (Paw): The paw to check.
-        Returns:
-            list[tuple[int, int]]: A list of valid destinations for this paw.
-        """
-        if (self.retreat_status.is_activated):
-            if (paw.color != self.retreat_status.activator_color):
-
-                print("MOUVEMENTS REDUITS")
+    def get_movements(self, paw: Paw) -> list[tuple[int, int]]:
         directions = {
             PawType.DONKEY: [(1, 0), (-1, 0), (0, 1), (0, -1)],
             PawType.DOG: [(1, 1), (1, -1), (-1, 1), (-1, -1)],
@@ -171,6 +168,21 @@ class Board:
                     if not occupant or occupant[0].paw_type.value < paw.paw_type.value:
                         moves.append((nx, ny))
         return moves
+
+    def possible_movements(self, paw: Paw) -> list[tuple[int, int]]:
+        """
+        Return a list of all possible movements for a given paw.
+        Args:
+            paw (Paw): The paw to check.
+        Returns:
+            list[tuple[int, int]]: A list of valid destinations for this paw.
+        """
+        if (self.retreat_status.is_activated):
+            if (paw.color != self.retreat_status.activator_color):
+                if (paw == self.retreat_status.paw_to_move):
+                    return self.get_movements(paw)
+                return []
+        return self.get_movements(paw)
 
     def get_unicolor_list(self, paws: list[Paw], color: Color) -> list[Paw]:
         """
