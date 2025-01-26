@@ -126,10 +126,7 @@ class Agent:
 
         batch = random.sample(self.memory, batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
-<<<<<<< HEAD
-=======
         actions = [a if isinstance(a, int) else a[0] for a in actions]
->>>>>>> origin/main
 
         states = torch.cat(states)
         actions = torch.tensor(actions, dtype=torch.long)
