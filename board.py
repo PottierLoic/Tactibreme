@@ -233,7 +233,6 @@ class Board:
         """
         if position in self.paws_coverage:
             if len(self.paws_coverage[position]) == 4:
-                print(f"situation gagnante, {self.paws_coverage[position]}")
                 return self.paws_coverage[position][-1].color
         return -1
 
