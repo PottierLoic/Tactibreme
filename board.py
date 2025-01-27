@@ -192,7 +192,11 @@ class Board:
         if (self.retreat_status.is_activated):
             if (paw.color != self.retreat_status.activator_color):
                 if (paw == self.retreat_status.paw_to_move):
-                    return self.get_movements(paw)
+                    moves = self.get_movements(paw)
+                    if (moves == []):
+                        self.retreat_status.is_activated = False
+                        return self.possible_movements(paw)
+                    return moves
                 return []
         return self.get_movements(paw)
 
