@@ -3,8 +3,8 @@ from enum import Enum
 from ai.agent import Agent, decode_action, encode_action
 from ai.network import Network
 from board import Board, GameFinished
-from color import Color
 from paw import Paw
+from color import Color
 from reward import calculate_reward
 
 
@@ -118,41 +118,6 @@ class Game:
             )
             current_agent.train(batch_size=32)
         self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
-
-        if self.current_turn == Color.RED:
-            self.play_ai_turn()
-
-    def play_ai_turn(self):
-        valid_moves = self.get_valid_moves(Color.RED)
-
-        if not valid_moves:
-            print("AI has no valid moves.")
-            return
-
-        state_tensor = self.agent1.encode_board(self.board)
-        print(f"State Tensor Shape: {state_tensor.shape}")
-
-        move = self.agent1.select_action(self.board, valid_moves)
-        print(f"AI selected move: {move}")
-
-        if move:
-            paw_index, destination = move
-            all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
-            red_paws = self.board.get_unicolor_list(all_paws, Color.RED)
-
-            selected_paw = red_paws[paw_index]
-
-            result = self.play_turn(selected_paw, destination)
-
-            reward = 0 # palceholder
-            next_state_tensor = self.agent1.encode_board(self.board)
-            self.agent1.store_transition(state_tensor, move, reward, next_state_tensor, done=False)
-            self.agent1.train(batch_size=32)
-
-            if isinstance(result, str):
-                print(result)
-        else:
-            print("AI could not make a move.")
 
     def get_valid_moves(self, color: Color) -> list[tuple[int, tuple[int, int]]]:
         """
