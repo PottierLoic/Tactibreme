@@ -3,8 +3,8 @@ from enum import Enum
 from ai.agent import Agent, decode_action, encode_action
 from ai.network import Network
 from board import Board, GameFinished
-from paw import Paw
 from color import Color
+from paw import Paw
 from reward import calculate_reward
 
 
@@ -16,19 +16,10 @@ class Game:
         self.retreat_position = None
         self.real_player = False
 
-        self.network1 = Network()
-        self.network2 = Network()
-        self.agent1 = Agent(
+        self.network = Network()
+        self.agent = Agent(
             color=Color.BLUE,
-            network=self.network1,
-            epsilon=0.1,
-            gamma=0.99,
-            learning_rate=1e-3,
-            buffer_size=10000,
-        )
-        self.agent2 = Agent(
-            color=Color.RED,
-            network=self.network2,
+            network=self.network,
             epsilon=0.1,
             gamma=0.99,
             learning_rate=1e-3,
@@ -90,16 +81,16 @@ class Game:
                 return "This move is not valid during retreat."
             self.process_move(selected_paw, destination)
         else:
-            current_agent = (
-                self.agent1 if self.current_turn == Color.BLUE else self.agent2
-            )
+            if self.current_turn == Color.BLUE:
+                state_tensor = self.agent.encode_board(self.board)
+            else:
+                state_tensor = self.agent.encode_inversed(self.board)
+            self.agent.color = self.current_turn
             valid_moves = self.board.get_valid_moves(self.current_turn)
             if not valid_moves:
                 print("AI has no valid moves.")
                 return
-            state_tensor = current_agent.encode_board(self.board)
-            move_idx = current_agent.select_action(self.board, valid_moves)
-
+            move_idx = self.agent.select_action(self.board, valid_moves)
             paw_index, destination = decode_action(move_idx)
             all_paws = [
                 paw
@@ -112,11 +103,11 @@ class Game:
                 self.board, (paw_index, destination), self.current_turn
             )
             self.process_move(selected_paw, destination)
-            next_state_tensor = current_agent.encode_board(self.board)
-            current_agent.store_transition(
+            next_state_tensor = self.agent.encode_board(self.board)
+            self.agent.store_transition(
                 state_tensor, move_idx, reward, next_state_tensor, done=False
             )
-            current_agent.train(batch_size=32)
+            self.agent.train(batch_size=32)
         self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
 
     def get_valid_moves(self, color: Color) -> list[tuple[int, tuple[int, int]]]:
@@ -131,7 +122,9 @@ class Game:
         """
         valid_moves = []
 
-        all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
+        all_paws = [
+            paw for paw_list in self.board.paws_coverage.values() for paw in paw_list
+        ]
 
         paws = self.board.get_unicolor_list(all_paws, color)
 

@@ -1,5 +1,6 @@
-from color import Color
 import random
+
+from color import Color
 from paw import Paw, PawType
 
 
@@ -7,12 +8,14 @@ class GameFinished(Exception):
     def __init__(self, winner_color):
         self.winner_color = winner_color
 
+
 class Retreat:
     def __init__(self):
         self.is_activated = False
         self.position = None
         self.activator_color = None
         self.paw_to_move = None
+
 
 class Board:
     def __init__(self) -> None:
@@ -76,13 +79,17 @@ class Board:
             self.retreat_status.is_activated = True
             self.retreat_status.position = destination
             self.retreat_status.activator_color = paw.color
-            self.retreat_status.paw_to_move = self.get_biggest_paw(self.other_color(paw.color), self.paws_coverage[destination])
+            self.retreat_status.paw_to_move = self.get_biggest_paw(
+                self.other_color(paw.color), self.paws_coverage[destination]
+            )
 
     def other_color(self, color: Color) -> Color:
         return Color((color.value + 1) % 2)
 
     def get_biggest_paw(self, color: Color, paws: list[Paw]) -> Paw:
-        return sorted(self.get_unicolor_list(paws, color), key=lambda paw: paw.paw_type.value)[0]
+        return sorted(
+            self.get_unicolor_list(paws, color), key=lambda paw: paw.paw_type.value
+        )[0]
 
     def valid_retreat_move(
         self, paw: Paw, destination: tuple[int, int], retreat_position: tuple[int, int]
@@ -189,11 +196,11 @@ class Board:
         Returns:
             list[tuple[int, int]]: A list of valid destinations for this paw.
         """
-        if (self.retreat_status.is_activated):
-            if (paw.color != self.retreat_status.activator_color):
-                if (paw == self.retreat_status.paw_to_move):
+        if self.retreat_status.is_activated:
+            if paw.color != self.retreat_status.activator_color:
+                if paw == self.retreat_status.paw_to_move:
                     moves = self.get_movements(paw)
-                    if (moves == []):
+                    if moves == []:
                         self.retreat_status.is_activated = False
                         return self.possible_movements(paw)
                     return moves

@@ -60,6 +60,27 @@ class Agent:
                     state[idx + 4, row, col] = 1
         return state.unsqueeze(0)
 
+    def encode_inversed(self, board: Board) -> torch.Tensor:
+        """
+        Encode the board state into a tensor with reversed colors and rotated positions.
+        Args:
+            board (Board): The current board state.
+        Returns:
+            torch.Tensor: Encoded board state of shape (1, 8, 5, 5), with reversed colors
+                          and rotated by 180 degrees.
+        """
+        state = torch.zeros((8, 5, 5), dtype=torch.float32)
+        for pos, paws in board.paws_coverage.items():
+            row, col = pos
+            for paw in paws:
+                idx = paw.paw_type.value - 1
+                if paw.color == Color.BLUE:
+                    state[idx + 4, 4 - row, 4 - col] = 1
+                elif paw.color == Color.RED:
+                    state[idx, 4 - row, 4 - col] = 1
+
+        return state.unsqueeze(0)
+
     def create_mask(self, valid_moves: List[Tuple[int, Tuple[int, int]]]) -> Tensor:
         """
         Create a mask for valid moves.
@@ -85,12 +106,16 @@ class Agent:
         Returns:
             tuple: Selected (paw_index, destination).
         """
+        if self.color == Color.BLUE:
+            state_tensor = self.encode_board(board)
+        else:
+            state_tensor = self.encode_inversed(board)
+
         if random.random() < self.epsilon:
             random_move = random.choice(valid_moves)
             return encode_action(random_move)
 
-        encoded_board = self.encode_board(board)
-        output = self.network(encoded_board).detach().squeeze()
+        output = self.network(state_tensor).detach().squeeze()
         mask = self.create_mask(valid_moves)
 
         masked_output = output * mask
