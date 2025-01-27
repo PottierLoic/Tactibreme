@@ -71,7 +71,6 @@ class Context:
         if destination in self.possible_moves:
             try:
                 message = self.game.play_turn(self.selected_paw, destination)
-                print(message)
                 self.selected_paw = None
                 self.possible_moves = []
             except GameFinished as game_ended:

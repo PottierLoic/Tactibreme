@@ -3,8 +3,8 @@ from enum import Enum
 from ai.agent import Agent, decode_action, encode_action
 from ai.network import Network
 from board import Board, GameFinished
-from color import Color
 from paw import Paw
+from color import Color
 from reward import calculate_reward
 
 
@@ -14,7 +14,6 @@ class Game:
         self.current_turn = Color.BLUE
         self.retreat_activated = False
         self.retreat_position = None
-
         self.real_player = False
 
         self.network1 = Network()
@@ -119,3 +118,26 @@ class Game:
             )
             current_agent.train(batch_size=32)
         self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
+
+    def get_valid_moves(self, color: Color) -> list[tuple[int, tuple[int, int]]]:
+        """
+        Retrieve all possible moves for the given color.
+
+        Args:
+            color (Color): The color to get moves from.
+
+        Returns:
+            list[tuple[int, tuple[int, int]]]: A list of (paw_index, destination).
+        """
+        valid_moves = []
+
+        all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
+
+        paws = self.board.get_unicolor_list(all_paws, color)
+
+        for index, paw in enumerate(paws):
+            possible_moves = self.board.possible_movements(paw)
+            for destination in possible_moves:
+                valid_moves.append((index, destination))
+        print(valid_moves)
+        return valid_moves
