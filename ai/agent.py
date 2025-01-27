@@ -86,7 +86,8 @@ class Agent:
             tuple: Selected (paw_index, destination).
         """
         if random.random() < self.epsilon:
-            return random.choice(valid_moves)
+            random_move = random.choice(valid_moves)
+            return encode_action(random_move)
 
         encoded_board = self.encode_board(board)
         output = self.network(encoded_board).detach().squeeze()
@@ -96,10 +97,7 @@ class Agent:
         masked_output[mask == 0] = -float("inf")
 
         best_move_index = torch.argmax(masked_output).item()
-        paw_index = best_move_index // 25
-        destination_index = best_move_index % 25
-        row, col = destination_index // 5, destination_index % 5
-        return paw_index, (row, col)
+        return best_move_index
 
     def store_transition(
         self, state: Tensor, action: int, reward: float, next_state: Tensor, done: bool
@@ -126,7 +124,6 @@ class Agent:
 
         batch = random.sample(self.memory, batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
-        actions = [a if isinstance(a, int) else a[0] for a in actions]
 
         states = torch.cat(states)
         actions = torch.tensor(actions, dtype=torch.long)
@@ -144,3 +141,22 @@ class Agent:
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+
+
+def encode_action(move: tuple[int, tuple[int, int]]) -> int:
+    """
+    Convert (paw_index, (row, col)) into a single integer 0..99.
+    """
+    paw_index, (row, col) = move
+    return paw_index * 25 + row * 5 + col
+
+
+def decode_action(action_idx: int) -> tuple[int, tuple[int, int]]:
+    """
+    Convert a single integer 0..99 back to (paw_index, (row, col)).
+    """
+    paw_index = action_idx // 25
+    destination_index = action_idx % 25
+    row = destination_index // 5
+    col = destination_index % 5
+    return paw_index, (row, col)
