@@ -169,3 +169,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Latex generated files
+document/*.log
+document/*.aux
+document/*.pdf
