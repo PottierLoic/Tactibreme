@@ -157,7 +157,7 @@ class Board:
                         break
                     occupant = self.find_paw_at((nx, ny))
                     if occupant:
-                        if occupant[0].paw_type.value < paw.paw_type.value:
+                        if occupant[-1].paw_type.value < paw.paw_type.value:
                             moves.append((nx, ny))
                         break
                     moves.append((nx, ny))
@@ -177,7 +177,8 @@ class Board:
                 nx, ny = paw.position[0] + dx, paw.position[1] + dy
                 if self.is_valid_position((nx, ny)):
                     occupant = self.find_paw_at((nx, ny))
-                    if not occupant or occupant[0].paw_type.value < paw.paw_type.value:
+                    print("il y a : " , occupant)
+                    if not occupant or occupant[-1].paw_type.value < paw.paw_type.value:
                         moves.append((nx, ny))
         return moves
 
