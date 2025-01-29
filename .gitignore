@@ -174,3 +174,4 @@ cython_debug/
 document/*.log
 document/*.aux
 document/*.pdf
+document/*.out

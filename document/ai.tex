@@ -1,0 +1,99 @@
+\documentclass[]{article}
+\usepackage{amsmath}
+
+\title{\textbf{Document IA (faut trouver mieux comme nom)}} % TODO
+\author{Pottier Loïc, Gros Charlène, Mudoy Jacques, Horter Louise, Los Thomas}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+Ce document fournit une présentation détaillée de l'architecture du réseau de neurones utilisé pour jouer au jeu de plateau `Les tacticiens de Brême`. Il couvre la représentation des données d'entrée, le codage des sorties, le fonctionnement de l'apprentissage par renforcement profond (\textit{Deep Q-Learning}) ainsi que les différentes couches du réseau.
+
+% TODO expliquer le dql
+
+\section{Représentation des Entrées}
+Le plateau est représenté comme une grille \(5 \times 5\), où chaque case est encodée par un vecteur à 8 canaux décrivant la présence des différents pions.
+
+\subsection{Canaux}
+\begin{itemize}
+    \item Les 4 premiers canaux : Présence des pions bleues (\textit{âne\_bleu}, \textit{chien\_bleu}, \textit{chat\_bleu}, \textit{coq\_bleu}).
+    \item Les 4 canaux suivants : Présence des pions rouges (\textit{âne\_rouge}, \textit{chien\_rouge}, \textit{chat\_rouge}, \textit{coq\_rouge}).
+\end{itemize}
+
+\subsection{Exemple d'Encodage}
+\begin{itemize}
+    \item Une case contenant un chat bleu et un âne rouge :
+    \begin{verbatim}
+[0, 0, 1, 0, 1, 0, 0, 0]
+    \end{verbatim}
+    \item Une case vide :
+    \begin{verbatim}
+[0, 0, 0, 0, 0, 0, 0, 0]
+    \end{verbatim}
+\end{itemize}
+
+\subsection{Dimensions des Entrées}
+\begin{itemize}
+    \item Pour un plateau unique : \((8, 5, 5)\) (canaux, lignes, colonnes).
+    \item Pour un lot de plateaux (\textit{batch}) : \((\text{taille\_batch}, 8, 5, 5)\).
+\end{itemize}
+
+\section{Représentation des Sorties}
+La sortie du réseau encode tous les déplacements possibles sous forme de liste aplatie de paires \((\text{pion}, \text{destination})\).
+
+\subsection{Taille de la Sortie}
+La sortie compte \(4 \times 25 = 100\) mouvements possibles :
+\begin{itemize}
+    \item 4 pions possibles (par joueur).
+    \item 25 cases possibles (une grille \(5 \times 5\)).
+\end{itemize}
+
+\subsection{FAUT TROUVER UNE NOM} % TODO
+Chaque index \(i\) dans la sortie correspond à :
+\[
+\text{index\_pion} = \frac{i}{25}, \quad
+\text{ligne\_destination} = \frac{i \bmod 25}{5}, \quad
+\text{colonne\_destination} = i \bmod 5.
+\]
+
+\subsection{Masquage}
+Un masque binaire est appliqué aux 100 scores de sortie pour invalider les mouvements impossibles. Les mouvements invalides reçoivent un score de \(-\infty\) avant l'étape \textit{softmax} :
+\begin{verbatim}
+Masque = [0, 1, 0, ..., 1]  # 1 pour les mouvements valides, 0 sinon
+\end{verbatim}
+
+\section{Architecture du Réseau de Neurones}
+L'architecture prend la représentation du plateau en entrée et produit une distribution sur les 100 mouvements possibles. Le réseau utilise des couches convolutionnelles pour extraire les caractéristiques spatiales, suivies de couches entièrement connectées pour produire les scores finaux.
+
+\subsection{Entrée}
+\(\text{Dimensions d'Entrée}: (\text{taille\_batch}, 8, 5, 5)\)
+
+\subsection{Couches Convolutionnelles}
+\begin{itemize}
+    \item \(\text{Conv2D}(8 \rightarrow 32)\) \(\rightarrow\) ReLU
+    \item \(\text{Conv2D}(32 \rightarrow 64)\) \(\rightarrow\) ReLU
+    \item \(\text{Conv2D}(64 \rightarrow 64)\) \(\rightarrow\) ReLU
+\end{itemize}
+
+\subsection{Couches Entièrement Connectées}
+\begin{itemize}
+    \item \(\text{Flatten}\)
+    \item \(\text{Linear}(5 \times 5 \times 64 \rightarrow 128) \rightarrow \text{ReLU}\)
+    \item \(\text{Linear}(128 \rightarrow 100)\)
+\end{itemize}
+
+\subsection{Sortie}
+\[
+(\text{taille\_batch}, 100)
+\]
+Ce vecteur est ensuite combiné avec le \textit{masque} pour garantir que seuls les mouvements valides sont pris en compte.
+
+\section{Limitations du Modèle}
+\begin{itemize}
+    \item \textbf{Dimensions fixes} : Les dimensions des entrées et des sorties doivent toujours rester constantes (\(8 \times 5 \times 5\) pour les entrées et \(100\) pour les sorties). Toute modification dans la taille du plateau ou le nombre de pions nécessiterait une révision complète du modèle.
+\end{itemize}
+
+\end{document}
