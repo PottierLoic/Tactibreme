@@ -12,8 +12,7 @@
 
 \maketitle
 
-
-\tikzset{>=latex} % for LaTeX arrow head
+\tikzset{>=latex}
 \colorlet{myred}{red!80!black}
 \colorlet{myblue}{blue!80!black}
 \colorlet{mygreen}{green!60!black}
@@ -42,56 +41,58 @@
   (\lay==5 ? 3 :     % Flatten
   (\lay<8 ? 4 : 5))))} % Dense + Output
 
-  \begin{tikzpicture}[x=1.8cm,y=1.2cm]
+\begin{tikzpicture}[x=1.8cm,y=1.2cm]
+% Input: 5 nodes
+% Conv Layers (2-4): 32, 64, 64 nodes
+% Flatten Layer (5): 1600 nodes
+% Dense Layers (6-7): 128, 100 nodes
+% Output Layer (8): 100 nodes
+\readlist\Nnod{5,4,4,4,6,4,4,3} 
 
-    % Input: 5 nodes
-    % Conv Layers (2-4): 4 nodes each
-    % Flatten Layer (5): 6 nodes
-    % Dense Layers (6-7): 4 nodes each
-    % Output Layer (8): 3 nodes
-    \readlist\Nnod{5,4,4,4,6,4,4,3} 
-  
-    \readlist\Nstr{n,m,m,m,f,d,d,k}  
-    \readlist\Cstr{x,h,h,h,a,z,z,y} 
-  
-    \def\yshift{0.55}
-  
-    \foreachitem \N \in \Nnod{
-      \def\lay{\Ncnt}
-      \pgfmathsetmacro\prev{int(\Ncnt-1)}
-  
-      \foreach \i [evaluate={
-        \c = int(\i==\N);
-        \y = \N/2 - \i - \c * \yshift;
-        \x = \lay;
-        \n = \nstyle;
-        \index = (\i<\N ? int(\i) : "\Nstr[\n]");
-      }] in {1,...,\N}{%
-        \pgfmathsetmacro\nstyle{int(\n==1 ? "input" : (\n==2 ? "conv" : (\n==3 ? "flat" : (\n==4 ? "dense" : "output"))))}
-        \node[\nstyle] (N\lay-\i) at (\x,\y) {$\strut\Cstr[\n]_{\index}$};
+\readlist\Nreal{200, 800, 1600, 1600,1600,128,100,100}  
+\readlist\Cstr{x,h,h,h,a,z,z,y} 
 
-        \ifnumcomp{\lay}{>}{1}{
-          \foreach \j in {1,...,\Nnod[\prev]}{
-            \draw[white,line width=1.2,shorten >=1] (N\prev-\j) -- (N\lay-\i);
-            \draw[connect] (N\prev-\j) -- (N\lay-\i);
-          }
-          \ifnum \lay=\Nnodlen
-            \draw[connect] (N\lay-\i) --++ (0.5,0);
-          \fi
-        }{
-          \draw[connect] (0.5,\y) -- (N\lay-\i);
+\def\yshift{0.55}
+
+\foreachitem \N \in \Nnod{
+    \def\lay{\Ncnt}
+    \pgfmathsetmacro\prev{int(\Ncnt-1)}
+
+    \foreach \i [evaluate={
+    \c = int(\i==\N);
+    \y = \N/2 - \i - \c * \yshift;
+    \x = \lay;
+    \n = \nstyle;
+    \index = (\i<\N ? int(\i) : "\Nreal[\lay]");
+    }] in {1,...,\N}{
+    
+    \pgfmathsetmacro\nstyle{int(\n==1 ? "input" : (\n==2 ? "conv" : (\n==3 ? "flat" : (\n==4 ? "dense" : "output"))))}
+    
+    \node[\nstyle] (N\lay-\i) at (\x,\y) {$\strut\Cstr[\n]_{\index}$};
+
+    \ifnumcomp{\lay}{>}{1}{
+        \foreach \j in {1,...,\Nnod[\prev]}{
+        \draw[white,line width=1.2,shorten >=1] (N\prev-\j) -- (N\lay-\i);
+        \draw[connect] (N\prev-\j) -- (N\lay-\i);
         }
-      }
-      \path (N\lay-\N) --++ (0,1+\yshift) node[midway,scale=1.6] {$\vdots$};
+        \ifnum \lay=\Nnodlen
+        \draw[connect] (N\lay-\i) --++ (0.5,0);
+        \fi
+    }{
+        \draw[connect] (0.5,\y) -- (N\lay-\i);
     }
-  
-    \node[above=3,align=center,mydarkgreen] at (N1-1.90) {Input\\[-0.2em]Layer};
-    \node[above=3,align=center,mydarkorange] at (N2-1.90) {Conv\\[-0.2em]Layers};
-    \node[above=3,align=center,mydarkyellow] at (N5-1.90) {Flatten\\[-0.2em]Layer};
-    \node[above=3,align=center,mydarkblue] at (N6-1.90) {Dense\\[-0.2em]Layers};
-    \node[above=3,align=center,mydarkred] at (N8-1.90) {Output\\[-0.2em]Layer};
-  
-  \end{tikzpicture}
+    }
+
+    \path (N\lay-\N) --++ (0,1+\yshift) node[midway,scale=1.6] {$\vdots$};
+}
+
+\node[above=3,align=center,mydarkgreen] at (N1-1.90) {Input\\[-0.2em]Layer};
+\node[above=3,align=center,mydarkorange] at (N2-1.90) {Conv\\[-0.2em]Layers};
+\node[above=3,align=center,mydarkyellow] at (N5-1.90) {Flatten\\[-0.2em]Layer};
+\node[above=3,align=center,mydarkblue] at (N6-1.90) {Dense\\[-0.2em]Layers};
+\node[above=3,align=center,mydarkred] at (N8-1.90) {Output\\[-0.2em]Layer};
+
+\end{tikzpicture}
 
 \section{Introduction}
 Ce document fournit une présentation détaillée des architectures de réseaux de neurones utilisées pour jouer au jeu de plateau `Les tacticiens de Brême`. Il couvre la représentation des données d'entrée, le codage des sorties, le fonctionnement de l'apprentissage par renforcement profond (\textit{Deep Q-Learning}) ainsi que les différentes couches du réseau.
