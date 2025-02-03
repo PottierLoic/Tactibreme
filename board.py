@@ -223,19 +223,18 @@ class Board:
         """
         return len(self.get_unicolor_list(paws, color)) < len(paws)
 
-    def check_win(self, position: tuple[int, int]) -> Color | int:
+    def check_win(self, position: tuple[int, int]) -> bool:
         """
         Check if there's a winning condition on the given position
         Args:
             position (tuple[int, int]): The board position to check.
         Returns:
-            Color | int: The color of the winner if there's a winning condition,
-                         otherwise -1 if no winning condition is met.
+            bool: Return true if this play leads to the win.
         """
         if position in self.paws_coverage:
             if len(self.paws_coverage[position]) == 4:
-                return self.paws_coverage[position][-1].color
-        return -1
+                return True
+        return False
 
     def get_valid_moves(self, color: Color) -> list[tuple[int, tuple[int, int]]]:
         """
