@@ -4,14 +4,6 @@
 \usepackage{listofitems}
 \usepackage{etoolbox}
 
-\title{\textbf{Document IA (faut trouver mieux comme nom)}} % TODO
-\author{Pottier Loïc, Gros Charlène, Mudoy Jacques, Horter Louise, Los Thomas}
-\date{\today}
-
-\begin{document}
-
-\maketitle
-
 \tikzset{>=latex}
 \colorlet{myred}{red!80!black}
 \colorlet{myblue}{blue!80!black}
@@ -32,7 +24,7 @@
   flat/.style={node,mydarkyellow,draw=myyellow,fill=myyellow!25},
   dense/.style={node,mydarkblue,draw=myblue,fill=myblue!20},
   output/.style={node,mydarkred,draw=myred,fill=myred!20},
-  connect/.style={->,thick,mydarkblue,shorten >=1}
+  connect/.style={-,thick,mydarkblue,shorten >=1}
 }
 
 \def\nstyle{%
@@ -41,58 +33,14 @@
   (\lay==5 ? 3 :     % Flatten
   (\lay<8 ? 4 : 5))))} % Dense + Output
 
-\begin{tikzpicture}[x=1.8cm,y=1.2cm]
-% Input: 5 nodes
-% Conv Layers (2-4): 32, 64, 64 nodes
-% Flatten Layer (5): 1600 nodes
-% Dense Layers (6-7): 128, 100 nodes
-% Output Layer (8): 100 nodes
-\readlist\Nnod{5,4,4,4,6,4,4,3} 
+\title{\textbf{Document IA (faut trouver mieux comme nom)}} % TODO
+\author{Pottier Loïc, Gros Charlène, Mudoy Jacques, Horter Louise, Los Thomas}
+\date{\today}
 
-\readlist\Nreal{200, 800, 1600, 1600,1600,128,100,100}  
-\readlist\Cstr{x,h,h,h,a,z,z,y} 
+\begin{document}
 
-\def\yshift{0.55}
+\maketitle
 
-\foreachitem \N \in \Nnod{
-    \def\lay{\Ncnt}
-    \pgfmathsetmacro\prev{int(\Ncnt-1)}
-
-    \foreach \i [evaluate={
-    \c = int(\i==\N);
-    \y = \N/2 - \i - \c * \yshift;
-    \x = \lay;
-    \n = \nstyle;
-    \index = (\i<\N ? int(\i) : "\Nreal[\lay]");
-    }] in {1,...,\N}{
-    
-    \pgfmathsetmacro\nstyle{int(\n==1 ? "input" : (\n==2 ? "conv" : (\n==3 ? "flat" : (\n==4 ? "dense" : "output"))))}
-    
-    \node[\nstyle] (N\lay-\i) at (\x,\y) {$\strut\Cstr[\n]_{\index}$};
-
-    \ifnumcomp{\lay}{>}{1}{
-        \foreach \j in {1,...,\Nnod[\prev]}{
-        \draw[white,line width=1.2,shorten >=1] (N\prev-\j) -- (N\lay-\i);
-        \draw[connect] (N\prev-\j) -- (N\lay-\i);
-        }
-        \ifnum \lay=\Nnodlen
-        \draw[connect] (N\lay-\i) --++ (0.5,0);
-        \fi
-    }{
-        \draw[connect] (0.5,\y) -- (N\lay-\i);
-    }
-    }
-
-    \path (N\lay-\N) --++ (0,1+\yshift) node[midway,scale=1.6] {$\vdots$};
-}
-
-\node[above=3,align=center,mydarkgreen] at (N1-1.90) {Input\\[-0.2em]Layer};
-\node[above=3,align=center,mydarkorange] at (N2-1.90) {Conv\\[-0.2em]Layers};
-\node[above=3,align=center,mydarkyellow] at (N5-1.90) {Flatten\\[-0.2em]Layer};
-\node[above=3,align=center,mydarkblue] at (N6-1.90) {Dense\\[-0.2em]Layers};
-\node[above=3,align=center,mydarkred] at (N8-1.90) {Output\\[-0.2em]Layer};
-
-\end{tikzpicture}
 
 \section{Introduction}
 Ce document fournit une présentation détaillée des architectures de réseaux de neurones utilisées pour jouer au jeu de plateau `Les tacticiens de Brême`. Il couvre la représentation des données d'entrée, le codage des sorties, le fonctionnement de l'apprentissage par renforcement profond (\textit{Deep Q-Learning}) ainsi que les différentes couches du réseau.
@@ -106,6 +54,52 @@ blabla
 \section{Modèle 1} % TODO: Si on leur donne des noms c'est sympa
 Ce premier modèle prend en entrée une représentation du plateau de jeu et produit une distribution sur les mouvements possibles.
 Le modèle n'ayant pas connaissance des mouvements interdits, on utilise un masque pour les éviter.
+
+\begin{tikzpicture}[x=1.8cm,y=1.2cm]
+    % Input: 5 nodes
+    % Conv Layers (2-4): 32, 64, 64 nodes
+    % Flatten Layer (5): 1600 nodes
+    % Dense Layers (6-7): 128, 100 nodes
+    % Output Layer (8): 100 nodes
+    \readlist\Nnod{5,4,4,4,6,4,4,3} 
+    
+    \readlist\Nnode{200, 800, 1600, 1600,1600,128,100,100}  
+    \readlist\Cstr{x,h,h,h,a,z,z,y} 
+    
+    \def\yshift{0.55}
+    
+    \foreachitem \N \in \Nnod{
+        \def\lay{\Ncnt}
+        \pgfmathsetmacro\prev{int(\Ncnt-1)}
+        \foreach \i [evaluate={
+            \c = int(\i==\N);
+            \y = \N/2 - \i - \c * \yshift;
+            \x = \lay;
+            \n = \nstyle;
+            \index = (\i<\N ? int(\i) : "\Nnode[\lay]");
+        }] in {1,...,\N}{
+            \pgfmathsetmacro\nstyle{int(\n==1 ? "input" : (\n==2 ? "conv" : (\n==3 ? "flat" : (\n==4 ? "dense" : "output"))))}
+            \node[\nstyle] (N\lay-\i) at (\x,\y) {$\strut\Cstr[\n]_{\index}$};
+            \ifnumcomp{\lay}{>}{1}{
+                \foreach \j in {1,...,\Nnod[\prev]}{
+                    \draw[white,line width=1.2,shorten >=1] (N\prev-\j) -- (N\lay-\i);
+                    \draw[connect] (N\prev-\j) -- (N\lay-\i);
+                }
+                \ifnum \lay=\Nnodlen
+                    \draw[connect] (N\lay-\i) --++ (0.5,0);
+                \fi
+            }{
+                \draw[connect] (0.5,\y) -- (N\lay-\i);
+            }
+        }
+        \path (N\lay-\N) --++ (0,1+\yshift) node[midway,scale=1.6] {$\vdots$};
+    }
+    \node[above=3,align=center,mydarkgreen] at (N1-1.90) {Input\\[-0.2em]Layer};
+    \node[above=3,align=center,mydarkorange] at (N2-1.90) {Conv\\[-0.2em]Layers};
+    \node[above=3,align=center,mydarkyellow] at (N5-1.90) {Flatten\\[-0.2em]Layer};
+    \node[above=3,align=center,mydarkblue] at (N6-1.90) {Dense\\[-0.2em]Layers};
+    \node[above=3,align=center,mydarkred] at (N8-1.90) {Output\\[-0.2em]Layer};
+\end{tikzpicture}
 
 \subsection{Représentation des Entrées}
 Le plateau est représenté comme une grille \(5 \times 5\), où chaque case est encodée par un vecteur à 8 canaux décrivant la présence des différents pions.
