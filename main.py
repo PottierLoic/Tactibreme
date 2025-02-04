@@ -6,6 +6,7 @@ from game import Game
 from paw import Paw
 from ui import *
 
+
 class Context:
     def __init__(self) -> None:
         self.game = Game()
@@ -117,6 +118,8 @@ def main() -> None:
                     controller.handle_arrow_key()
                 elif event.key == pygame.K_DOWN:
                     controller.handle_arrow_key()
+                elif event.key == pygame.K_SPACE:
+                    controller.game.real_player = not controller.game.real_player
         if not controller.game.real_player:
             controller.game.play_turn()
     pygame.quit()
