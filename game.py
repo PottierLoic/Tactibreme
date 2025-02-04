@@ -53,9 +53,8 @@ class Game:
             self.retreat_position = destination
             self.retreat_activated = True
 
-        winner = self.board.check_win(destination)
-        if winner != -1:
-            print(f"The winner is {winner}! Restarting the game...")
+        if self.board.check_win(destination):
+            print(f"The winner is {selected_paw.color}! Restarting the game...")
             self.reset_game()
             return
 

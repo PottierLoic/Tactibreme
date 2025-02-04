@@ -164,7 +164,7 @@ class Board:
                         break
                     occupant = self.find_paw_at((nx, ny))
                     if occupant:
-                        if occupant[0].paw_type.value < paw.paw_type.value:
+                        if occupant[-1].paw_type.value < paw.paw_type.value:
                             moves.append((nx, ny))
                         break
                     moves.append((nx, ny))
@@ -184,7 +184,8 @@ class Board:
                 nx, ny = paw.position[0] + dx, paw.position[1] + dy
                 if self.is_valid_position((nx, ny)):
                     occupant = self.find_paw_at((nx, ny))
-                    if not occupant or occupant[0].paw_type.value < paw.paw_type.value:
+                    print("il y a : " , occupant)
+                    if not occupant or occupant[-1].paw_type.value < paw.paw_type.value:
                         moves.append((nx, ny))
         return moves
 
@@ -229,19 +230,18 @@ class Board:
         """
         return len(self.get_unicolor_list(paws, color)) < len(paws)
 
-    def check_win(self, position: tuple[int, int]) -> Color | int:
+    def check_win(self, position: tuple[int, int]) -> bool:
         """
         Check if there's a winning condition on the given position
         Args:
             position (tuple[int, int]): The board position to check.
         Returns:
-            Color | int: The color of the winner if there's a winning condition,
-                         otherwise -1 if no winning condition is met.
+            bool: Return true if this play leads to the win.
         """
         if position in self.paws_coverage:
             if len(self.paws_coverage[position]) == 4:
-                return self.paws_coverage[position][-1].color
-        return -1
+                return True
+        return False
 
     def get_valid_moves(self, color: Color) -> list[tuple[int, tuple[int, int]]]:
         """
