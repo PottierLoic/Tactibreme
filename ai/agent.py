@@ -41,6 +41,42 @@ class Agent:
         )
         self.criterion: nn.Module = nn.MSELoss()
 
+    def save_checkpoint(self, filepath: str) -> None:
+        """
+        Save the current model and hyperparameters to a file.
+        Args:
+            filepath (str): Path where the model will be saved.
+        """
+        checkpoint = {
+            'model_state_dict': self.network.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'epsilon': self.epsilon,
+            'gamma': self.gamma,
+            'learning_rate': self.learning_rate,
+            'buffer_size': self.buffer_size,
+        }
+        torch.save(checkpoint, filepath)
+        print(f"Model and hyperparameters saved to {filepath}")
+
+
+
+    def load_checkpoint(self, filepath: str) -> None:
+        """
+        Load a model and hyperparameters from a checkpoint file.
+        Args:
+            filepath (str): Path to the model checkpoint file.
+        """
+        checkpoint = torch.load(filepath)
+        self.network.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.epsilon = checkpoint['epsilon']
+        self.gamma = checkpoint['gamma']
+        self.learning_rate = checkpoint['learning_rate']
+        self.buffer_size = checkpoint['buffer_size']
+        self.network.eval()
+        print(f"Model and hyperparameters loaded from {filepath}")
+
+
     def encode_board(self, board: Board) -> Tensor:
         """
         Encode the board state into a tensor.
@@ -59,41 +95,6 @@ class Agent:
                 elif paw.color == Color.RED:
                     state[idx + 4, row, col] = 1
         return state.unsqueeze(0)
-
-    def encode_inversed(self, board: Board) -> torch.Tensor:
-        """
-        Encode the board state into a tensor with reversed colors and rotated positions.
-        Args:
-            board (Board): The current board state.
-        Returns:
-            torch.Tensor: Encoded board state of shape (1, 8, 5, 5), with reversed colors
-                          and rotated by 180 degrees.
-        """
-        state = torch.zeros((8, 5, 5), dtype=torch.float32)
-        for pos, paws in board.paws_coverage.items():
-            row, col = pos
-            for paw in paws:
-                idx = paw.paw_type.value - 1
-                if paw.color == Color.BLUE:
-                    state[idx + 4, 4 - row, 4 - col] = 1
-                elif paw.color == Color.RED:
-                    state[idx, 4 - row, 4 - col] = 1
-
-        return state.unsqueeze(0)
-
-    def create_mask(self, valid_moves: List[Tuple[int, Tuple[int, int]]]) -> Tensor:
-        """
-        Create a mask for valid moves.
-        Args:
-            valid_moves (list): List of valid (paw_index, destination) pairs.
-        Returns:
-            Tensor: A mask of size 100 with 1 for valid moves, 0 otherwise.
-        """
-        mask = torch.zeros(100, dtype=torch.float32)
-        for paw_index, (row, col) in valid_moves:
-            flat_index = paw_index * 25 + row * 5 + col
-            mask[flat_index] = 1
-        return mask
 
     def select_action(
         self, board: Board, valid_moves: List[Tuple[int, Tuple[int, int]]]
@@ -116,12 +117,7 @@ class Agent:
             return encode_action(random_move)
 
         output = self.network(state_tensor).detach().squeeze()
-        mask = self.create_mask(valid_moves)
-
-        masked_output = output * mask
-        masked_output[mask == 0] = -float("inf")
-
-        best_move_index = torch.argmax(masked_output).item()
+        best_move_index = torch.argmax(output).item()
         return best_move_index
 
     def store_transition(
