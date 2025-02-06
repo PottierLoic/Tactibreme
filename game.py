@@ -6,7 +6,7 @@ from board import Board, GameFinished
 from color import Color
 from paw import Paw
 from reward import calculate_reward
-
+from stats import Stats
 
 class Game:
     def __init__(self):
@@ -15,7 +15,7 @@ class Game:
         self.retreat_activated = False
         self.retreat_position = None
         self.real_player = False
-
+        self.stats = Stats()
         self.network1 = Network()
         self.agent1 = Agent(
             color=Color.BLUE,
@@ -44,6 +44,7 @@ class Game:
         self.current_turn = Color.BLUE
         self.retreat_activated = False
         self.retreat_position = None
+        self.stats = Stats()
         get_logger(__name__).debug("Game has been reset. A new game starts!")
 
     def process_move(self, selected_paw: Paw, destination: tuple[int, int]) -> None:
@@ -55,8 +56,10 @@ class Game:
             destination (tuple[int, int]): The target position.
         """
         self.retreat_activated = False
+        self.stats.moves_counter += 1
         possible_moves = self.board.possible_movements(selected_paw)
         if destination not in possible_moves:
+            self.stats.invalid_moves += 1
             return f"Invalid move. {destination} is not a valid destination."
         if self.board.move_paw(selected_paw, destination) == 1:
             get_logger(__name__).debug(f"{self.current_turn} activated the retreat.")
@@ -65,6 +68,7 @@ class Game:
 
         if self.board.check_win(destination):
             get_logger(__name__).debug(f"The winner is {selected_paw.color}!")
+            self.stats.pp_stats()
             self.reset_game()
             return
 
