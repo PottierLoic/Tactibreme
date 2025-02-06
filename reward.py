@@ -23,5 +23,4 @@ def calculate_reward(
         total_reward += 5
     if board_copy.check_win(destination):
         total_reward += 100
-    print(total_reward)
     return total_reward
