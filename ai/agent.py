@@ -1,10 +1,9 @@
 import random
+import torch
 from collections import deque
 from typing import Deque, List, Tuple
-
-import torch
+from logger import get_logger
 from torch import Tensor, nn
-
 from board import Board
 from color import Color
 

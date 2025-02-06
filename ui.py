@@ -6,16 +6,13 @@ def plot_rewards(game):
     plt.ion()
     fig, ax = plt.subplots()
 
-    rewards_agent1 = []
-    rewards_agent2 = []
+    rewards_agent = []
 
     while True:
-        rewards_agent1 = [entry[2] for entry in game.agent1.memory]
-        rewards_agent2 = [entry[2] for entry in game.agent2.memory]
+        rewards_agent = [entry[2] for entry in game.agent.memory]
 
         ax.clear()
-        ax.plot(rewards_agent1, label='Agent 1 Rewards', color='blue')
-        ax.plot(rewards_agent2, label='Agent 2 Rewards', color='red')
+        ax.plot(rewards_agent, label='Agent 1 Rewards', color='blue')
         ax.set_title('AI rewards over episodes')
         ax.set_xlabel('Episode')
         ax.set_ylabel('Reward')

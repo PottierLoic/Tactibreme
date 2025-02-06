@@ -1,8 +1,7 @@
 import random
-
 from color import Color
 from paw import Paw, PawType
-
+from logger import get_logger
 
 class GameFinished(Exception):
     def __init__(self, winner_color):
@@ -73,6 +72,7 @@ class Board:
             (destination[0] == 0 and paw.color == Color.RED)
             or (destination[0] == 4 and paw.color == Color.BLUE)
         ) and self.is_blended(self.paws_coverage[destination], paw.color):
+            get_logger(__name__).debug(f"retraite activée par {paw.color}")
             self.retreat_status.is_activated = True
             self.retreat_status.position = destination
             self.retreat_status.activator_color = paw.color
