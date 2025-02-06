@@ -1,5 +1,5 @@
 from enum import Enum
-
+from logger import get_logger
 from ai.agent import Agent, decode_action, encode_action
 from ai.network import Network
 from board import Board, GameFinished
@@ -34,7 +34,7 @@ class Game:
         self.current_turn = Color.BLUE
         self.retreat_activated = False
         self.retreat_position = None
-        print("Game has been reset. A new game starts!")
+        get_logger(__name__).debug("Game has been reset. A new game starts!")
 
     def process_move(self, selected_paw: Paw, destination: tuple[int, int]) -> None:
         """
@@ -49,12 +49,12 @@ class Game:
         if destination not in possible_moves:
             return f"Invalid move. {destination} is not a valid destination."
         if self.board.move_paw(selected_paw, destination) == 1:
-            print(f"{self.current_turn} activated the retreat.")
+            get_logger(__name__).debug(f"{self.current_turn} activated the retreat.")
             self.retreat_position = destination
             self.retreat_activated = True
 
         if self.board.check_win(destination):
-            print(f"The winner is {selected_paw.color}! Restarting the game...")
+            get_logger(__name__).debug(f"The winner is {selected_paw.color}!")
             self.reset_game()
             return
 
@@ -87,7 +87,7 @@ class Game:
             self.agent.color = self.current_turn
             valid_moves = self.board.get_valid_moves(self.current_turn)
             if not valid_moves:
-                print("AI has no valid moves.")
+                get_logger(__name__).debug("AI has no valid moves.")
                 return
             move_idx = self.agent.select_action(self.board, valid_moves)
             paw_index, destination = decode_action(move_idx)
@@ -131,5 +131,5 @@ class Game:
             possible_moves = self.board.possible_movements(paw)
             for destination in possible_moves:
                 valid_moves.append((index, destination))
-        print(valid_moves)
+        get_logger(__name__).debug(valid_moves)
         return valid_moves
