@@ -28,6 +28,7 @@ class Agent:
             learning_rate (float): Learning rate for the optimizer.
             buffer_size (int): Maximum size of the replay buffer.
         """
+        self.reward_counter = 0
         self.color: Color = color
         self.network: nn.Module = network
         self.epsilon: float = epsilon

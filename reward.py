@@ -1,6 +1,5 @@
 import copy
 from typing import Tuple
-
 from board import Board
 from color import Color
 
@@ -18,7 +17,7 @@ def calculate_reward(
     selected_paw_copy = copy_agent_paws[paw_index]
     move_result = board_copy.move_paw(selected_paw_copy, destination)
     if not move_result:
-        total_reward -= 5
+        total_reward -= 10
     else:
         total_reward += 5
     if board_copy.check_win(destination):

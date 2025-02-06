@@ -114,6 +114,7 @@ class Game:
                 self.board, (paw_index, destination), self.current_turn
             )
             self.process_move(selected_paw, destination)
+            agent.reward_counter += reward
             next_state_tensor = agent.encode_board(self.board)
             agent.store_transition(
                 state_tensor, move_idx, reward, next_state_tensor, done=False
