@@ -3,7 +3,6 @@ from color import Color
 from paw import Paw, PawType
 from logger import get_logger
 
-
 class GameFinished(Exception):
     def __init__(self, winner_color):
         self.winner_color = winner_color
