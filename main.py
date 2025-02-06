@@ -1,5 +1,5 @@
 import pygame
-
+from logger import get_logger
 from board import GameFinished
 from constants import *
 from game import Game
@@ -75,7 +75,8 @@ class Context:
                 self.selected_paw = None
                 self.possible_moves = []
             except GameFinished as game_ended:
-                print(f"The winner is {game_ended.winner_color} !!!!")
+                get_logger(__name__).debug(f"The winner is {game_ended.winner_color} !!!!")
+                return
 
     def handle_arrow_key(self) -> None:
         if not self.selected_paw:
@@ -89,7 +90,6 @@ class Context:
             next_index = (current_index + 1) % len(unicolor_list)
             self.selected_paw = unicolor_list[next_index]
             self.possible_moves = self.game.board.possible_movements(self.selected_paw)
-
 
 def main() -> None:
     pygame.init()
