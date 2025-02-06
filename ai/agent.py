@@ -48,17 +48,15 @@ class Agent:
             filepath (str): Path where the model will be saved.
         """
         checkpoint = {
-            'model_state_dict': self.network.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'epsilon': self.epsilon,
-            'gamma': self.gamma,
-            'learning_rate': self.learning_rate,
-            'buffer_size': self.buffer_size,
+            "model_state_dict": self.network.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+            "epsilon": self.epsilon,
+            "gamma": self.gamma,
+            "learning_rate": self.learning_rate,
+            "buffer_size": self.buffer_size,
         }
         torch.save(checkpoint, filepath)
         print(f"Model and hyperparameters saved to {filepath}")
-
-
 
     def load_checkpoint(self, filepath: str) -> None:
         """
@@ -67,15 +65,14 @@ class Agent:
             filepath (str): Path to the model checkpoint file.
         """
         checkpoint = torch.load(filepath)
-        self.network.load_state_dict(checkpoint['model_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        self.epsilon = checkpoint['epsilon']
-        self.gamma = checkpoint['gamma']
-        self.learning_rate = checkpoint['learning_rate']
-        self.buffer_size = checkpoint['buffer_size']
+        self.network.load_state_dict(checkpoint["model_state_dict"])
+        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        self.epsilon = checkpoint["epsilon"]
+        self.gamma = checkpoint["gamma"]
+        self.learning_rate = checkpoint["learning_rate"]
+        self.buffer_size = checkpoint["buffer_size"]
         self.network.eval()
         print(f"Model and hyperparameters loaded from {filepath}")
-
 
     def encode_board(self, board: Board) -> Tensor:
         """
@@ -107,11 +104,7 @@ class Agent:
         Returns:
             tuple: Selected (paw_index, destination).
         """
-        if self.color == Color.BLUE:
-            state_tensor = self.encode_board(board)
-        else:
-            state_tensor = self.encode_inversed(board)
-
+        state_tensor = self.encode_board(board)
         if random.random() < self.epsilon:
             random_move = random.choice(valid_moves)
             return encode_action(random_move)

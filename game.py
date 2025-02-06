@@ -16,10 +16,20 @@ class Game:
         self.retreat_position = None
         self.real_player = False
 
-        self.network = Network()
-        self.agent = Agent(
+        self.network1 = Network()
+        self.agent1 = Agent(
             color=Color.BLUE,
-            network=self.network,
+            network=self.network1,
+            epsilon=0.1,
+            gamma=0.99,
+            learning_rate=1e-3,
+            buffer_size=10000,
+        )
+
+        self.network2 = Network()
+        self.agent2 = Agent(
+            color=Color.RED,
+            network=self.network2,
             epsilon=0.1,
             gamma=0.99,
             learning_rate=1e-3,
@@ -49,7 +59,6 @@ class Game:
         if destination not in possible_moves:
             return f"Invalid move. {destination} is not a valid destination."
         if self.board.move_paw(selected_paw, destination) == 1:
-            print(f"{self.current_turn} activated the retreat.")
             self.retreat_position = destination
             self.retreat_activated = True
 
@@ -80,16 +89,14 @@ class Game:
                 return "This move is not valid during retreat."
             self.process_move(selected_paw, destination)
         else:
-            if self.current_turn == Color.BLUE:
-                state_tensor = self.agent.encode_board(self.board)
-            else:
-                state_tensor = self.agent.encode_inversed(self.board)
-            self.agent.color = self.current_turn
+            agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
+            state_tensor = agent.encode_board(self.board)
+            agent.color = self.current_turn
             valid_moves = self.board.get_valid_moves(self.current_turn)
             if not valid_moves:
                 print("AI has no valid moves.")
                 return
-            move_idx = self.agent.select_action(self.board, valid_moves)
+            move_idx = agent.select_action(self.board, valid_moves)
             paw_index, destination = decode_action(move_idx)
             all_paws = [
                 paw
@@ -102,11 +109,11 @@ class Game:
                 self.board, (paw_index, destination), self.current_turn
             )
             self.process_move(selected_paw, destination)
-            next_state_tensor = self.agent.encode_board(self.board)
-            self.agent.store_transition(
+            next_state_tensor = agent.encode_board(self.board)
+            agent.store_transition(
                 state_tensor, move_idx, reward, next_state_tensor, done=False
             )
-            self.agent.train(batch_size=32)
+            agent.train(batch_size=32)
         self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
 
     def get_valid_moves(self, color: Color) -> list[tuple[int, tuple[int, int]]]:
