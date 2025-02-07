@@ -28,10 +28,13 @@ class Agent:
             learning_rate (float): Learning rate for the optimizer.
             buffer_size (int): Maximum size of the replay buffer.
         """
+        # TODO: get name too for saving function later
         self.color: Color = color
         self.network: nn.Module = network
         self.epsilon: float = epsilon
         self.gamma: float = gamma
+        self.learning_rate: float = learning_rate
+        self.buffer_size: int = buffer_size
         self.optimizer: torch.optim.Optimizer = torch.optim.Adam(
             self.network.parameters(), lr=learning_rate
         )
