@@ -1,30 +1,45 @@
-import pygame
 import argparse
 import sys
-from logger import get_logger
+
+import pygame
+
 from board import GameFinished
 from constants import *
 from game import Game
+from logger import get_logger
 from paw import Paw
 from ui import *
+
+lock = threading.Lock()
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
         description="TACTIBREME: Train an AI and play board game matches"
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
-    
+
     # Train Command
     train_parser = subparsers.add_parser("train", help="Train an AI model")
     train_parser.add_argument("name", type=str, help="Name of the AI model")
-    train_parser.add_argument("--count", type=int, default=1000, help="Number of games to train")
-    train_parser.add_argument("--load", nargs=2, metavar=("AGENT1", "AGENT2"), help="Paths to two existing models to continue training")
+    train_parser.add_argument(
+        "--count", type=int, default=1000, help="Number of games to train"
+    )
+    train_parser.add_argument(
+        "--load",
+        nargs=2,
+        metavar=("AGENT1", "AGENT2"),
+        help="Paths to two existing models to continue training",
+    )
     train_parser.add_argument("--epsilon", type=float, help="Exploration rate")
     train_parser.add_argument("--decay", type=float, help="Decay rate")
     train_parser.add_argument("--gamma", type=float, help="Discount factor")
     train_parser.add_argument("--lr", type=float, help="Learning rate")
     train_parser.add_argument("--record", type=str, help="File to save match history")
-    train_parser.add_argument("--stats", type=str, help="File to save training statistics")
+    train_parser.add_argument(
+        "--stats", type=str, help="File to save training statistics"
+    )
+    train_parser.add_argument("--ui", action="store_true", help="Enable pygame UI.")
 
     # # AI vs AI Command
     # record_parser = subparsers.add_parser("record", help="Play AI vs AI matches")
@@ -41,8 +56,9 @@ def parse_args():
     # # Stats Command
     # stats_parser = subparsers.add_parser("stats", help="Generate match statistics")
     # stats_parser.add_argument("csv", type=str, help="CSV file containing match history")
-    
+
     return parser.parse_args()
+
 
 class Context:
     def __init__(self) -> None:
@@ -61,7 +77,9 @@ class Context:
                 )
 
     def draw_paws(self, screen: pygame.Surface) -> None:
-        for position, paws in self.game.board.paws_coverage.items():
+        with lock:
+            paws_copy = dict(self.game.board.paws_coverage)
+        for position, paws in paws_copy.items():
             sorted_paws = sorted(paws, key=lambda paw: paw.paw_type.value)
             for paw in sorted_paws:
                 row, col = position
@@ -77,7 +95,9 @@ class Context:
                 screen.blit(text, text_rect)
 
     def highlight_moves(self, screen: pygame.Surface) -> None:
-        for row, col in self.possible_moves:
+        with lock:
+            moves_copy = list(self.possible_moves)
+        for row, col in moves_copy:
             highlight_surface = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
             highlight_surface.fill((255, 255, 0, 128))
             screen.blit(highlight_surface, (col * CELL_SIZE, row * CELL_SIZE))
@@ -112,7 +132,9 @@ class Context:
                 self.selected_paw = None
                 self.possible_moves = []
             except GameFinished as game_ended:
-                get_logger(__name__).debug(f"The winner is {game_ended.winner_color} !!!!")
+                get_logger(__name__).debug(
+                    f"The winner is {game_ended.winner_color} !!!!"
+                )
                 return
 
     def handle_arrow_key(self) -> None:
@@ -128,48 +150,67 @@ class Context:
             self.selected_paw = unicolor_list[next_index]
             self.possible_moves = self.game.board.possible_movements(self.selected_paw)
 
+
+def run_training(args, controller):
+    """Runs the training in a separate thread while UI runs on main thread"""
+    if args.load:
+        game = Game(
+            agent1_path=args.load[0],
+            agent2_path=args.load[1],
+            num_games=args.count,
+            mode="train",
+        )
+        get_logger(__name__).info(
+            f"Continuing training from {args.load[0]} and {args.load[1]}"
+        )
+    else:
+        valid_hyperparams = {
+            k: v
+            for k, v in vars(args).items()
+            if v is not None and k in ["epsilon", "decay", "gamma", "lr"]
+        }
+        game = Game(num_games=args.count, mode="train", **valid_hyperparams)
+    with lock:
+        controller.game = game
+    game.train_agents()
+
+
+def run_ui(controller):
+    """Runs the pygame UI"""
+    pygame.init()
+    screen = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
+    pygame.display.set_caption("Les Tacticiens de Brême")
+
+    running = True
+    while running:
+        screen.fill(BLACK)
+        controller.draw_grid(screen)
+        controller.draw_paws(screen)
+        if controller.selected_paw:
+            controller.highlight_moves(screen)
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+    pygame.quit()
+
+
 def main() -> None:
-    # pygame.init()
-    # screen = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
-    # pygame.display.set_caption("Les Tacticiens de Brême")
-    # controller = Context()
-    # start_plotting_thread(controller.game)
-    # running = True
-    # while running:
-    #     screen.fill(BLACK)
-    #     controller.draw_grid(screen)
-    #     controller.draw_paws(screen)
-    #     if controller.selected_paw:
-    #         controller.highlight_moves(screen)
-    #     pygame.display.flip()
-    #     for event in pygame.event.get():
-    #         if event.type == pygame.QUIT:
-    #             running = False
-    #         elif event.type == pygame.MOUSEBUTTONDOWN:
-    #             if event.button == 1:
-    #                 controller.handle_left_click(event.pos)
-    #             elif event.button == 3:
-    #                 controller.handle_right_click(event.pos)
-    #         elif event.type == pygame.KEYDOWN:
-    #             if event.key == pygame.K_UP:
-    #                 controller.handle_arrow_key()
-    #             elif event.key == pygame.K_DOWN:
-    #                 controller.handle_arrow_key()
-    #             elif event.key == pygame.K_SPACE:
-    #                 controller.game.real_player = not controller.game.real_player
-    #     if not controller.game.real_player:
-    #         controller.game.play_turn()
-    # pygame.quit()
     args = parse_args()
     if args.command == "train":
-        # TODO: If --record arg is given, record games
-        if args.load:
-            game = Game(agent1_path=args.load[0], agent2_path=args.load[1], num_games=args.count, mode="train")
-            get_logger(__name__).info(f"Continuing training from {args.load[0]} and {args.load[1]}")
+        controller = Context()
+        if args.ui:
+            train_thread = threading.Thread(
+                target=run_training, args=(args, controller)
+            )
+            train_thread.start()
+            run_ui(controller)
+            train_thread.join()
         else:
-            valid_hyperparams = {k: v for k, v in vars(args).items() if v is not None and k in ["epsilon", "decay", "gamma", "lr"]}
-            game = Game(num_games=args.count, mode="train", **valid_hyperparams)
-        game.train_agents()
+            run_training(args, controller)
+
 
 if __name__ == "__main__":
     main()
