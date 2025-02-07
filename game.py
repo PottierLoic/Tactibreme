@@ -8,7 +8,6 @@ from color import Color
 from paw import Paw
 from reward import calculate_reward
 
-
 class Game:
     def __init__(self, agent1_path=None, agent2_path=None, num_games=1000, mode="train", **agent_params):
         """
@@ -58,7 +57,7 @@ class Game:
         """
         Train the AI agents for a specified number of games.
         """
-        progress_bar = tqdm(range(self.num_games), desc="Training Progress", unit="game")
+        progress_bar = tqdm(range(self.num_games), desc="Training Progress", unit="game", dynamic_ncols=True)
         for game in progress_bar:
             self.reset_game()
             done = False
@@ -88,10 +87,11 @@ class Game:
                 self.agent1.save_checkpoint("agent1_checkpoint.pth")
                 self.agent2.save_checkpoint("agent2_checkpoint.pth")
                 get_logger(__name__).info(f"Checkpoint saved at game {game + 1}")
-            progress_bar.set_description(f"Training Game {game + 1}/{self.num_games}")
+            progress_bar.update(1)
 
         self.agent1.save_checkpoint("agent1_checkpoint.pth")
         self.agent2.save_checkpoint("agent2_checkpoint.pth")
+        progress_bar.close()
         get_logger(__name__).info("Training complete!")
 
     def reset_game(self) -> None:
