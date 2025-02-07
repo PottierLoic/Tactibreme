@@ -1,3 +1,4 @@
+from tqdm import tqdm
 from enum import Enum
 from logger import get_logger
 from ai.agent import Agent, decode_action, encode_action
@@ -57,9 +58,8 @@ class Game:
         """
         Train the AI agents for a specified number of games.
         """
-        print("starting training")
-        for game in range(self.num_games):
-            print("game ", game)
+        progress_bar = tqdm(range(self.num_games), desc="Training Progress", unit="game")
+        for game in progress_bar:
             self.reset_game()
             done = False
             while not done:
@@ -84,10 +84,12 @@ class Game:
 
                 self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
 
-            if (game + 1) % 100 == 0:
+            if (game + 1) % 10 == 0:
                 self.agent1.save_checkpoint("agent1_checkpoint.pth")
                 self.agent2.save_checkpoint("agent2_checkpoint.pth")
                 get_logger(__name__).info(f"Checkpoint saved at game {game + 1}")
+            progress_bar.set_description(f"Training Game {game + 1}/{self.num_games}")
+
         self.agent1.save_checkpoint("agent1_checkpoint.pth")
         self.agent2.save_checkpoint("agent2_checkpoint.pth")
         get_logger(__name__).info("Training complete!")
