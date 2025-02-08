@@ -83,7 +83,7 @@ class Game:
 
                 self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
 
-            if (game + 1) % 10 == 0:
+            if (game + 1) % 5 == 0:
                 self.agent1.save_checkpoint("agent1_checkpoint.pth")
                 self.agent2.save_checkpoint("agent2_checkpoint.pth")
                 get_logger(__name__).info(f"Checkpoint saved at game {game + 1}")
