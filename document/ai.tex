@@ -47,9 +47,29 @@ Ce document fournit une présentation détaillée des architectures de réseaux 
 Nous étudierons d'abord le focntionnement du DQL avant de détailler les différents modèles utilisés.
 
 \section{Le DQL}
-blabla
-% TODO expliquer le dql
-% TODO expliquer que le système de récompense est traité dans le document sur le récompenses.
+Le Deep Q-Learning (DQN) est un méthode d'apprentissage par reforcement (Reinforcement Learning) visant à entraîner un agent à interagir avec un environnement pour maximiser une récompense cumulative. L'agent apprend à prendre des décisions en fonction de l'état actuel de l'environnement et des récompenses associées à chaque action. Le DQL est basé sur l'apprentissage profond et utilise un réseau de neurones pour approximer la fonction \(Q(s, a)\), qui estime la récompense attendue pour une action donnée dans un état donné.
+
+\subsection{Utilisation de datasets}
+Dans la plupart des applications de l'apprentissage profond, l'entraînement repose sur des ensembles de données statistiques (\textit{offline learning}). Par exemple, les réseaux de neurones convolutionnels (CNN) sont généralement entraînés sur des datasets d'images (\textit{e.g., ImageNet}), tandis que les modèles NLP exploitent des corpus de texte préexistants. De manière similaire, certaines approches de RL exploitent des expériences passées sous forme de datasets pré-enregistrés pour optimiser la politique d'un agent, comme dans l'\textit{Offline Reinforcement Learning}.
+
+\subsection{Apprentissage par récompense}
+Dans notre cas particulier, n'ayant pas accès a un dataset, nous adoptons une approche d'apprentissage plus directe. L'agent apprend à jouer en interagissant directement avec l'environnement, en explorant les différentes actions possibles et en ajustant ses stratégies en fonction des récompenses reçues. L'agent est entraîné à maximiser la récompense cumulative en utilisant une combinaison d'exploration aléatoire et d'exploitation des connaissances acquises.
+
+\section{Nécessité de deux modèles: jeu et draft de placement}
+Au début d'une partie, les deux joueurs doivent placer leurs pions sur le plateau. Ce placement initial est crucial pour la suite de la partie, car il détermine les options stratégiques disponibles. Chaque joueur doit placer un pion à tour de role jusqu'à ce que les 8 pions soient placés. Pour cette phase de draft, nous utiliserons un modèle spécifique prenant en entrée une représentation partielle du plateau de jeu et produisant une distribution sur les cases disponibles. Ce modèle est entièrement distinct du modèle principal qui sera utilisé pour les mouvements pendant la partie.
+
+\subsection{Pourquoi un modèle séparé ?}
+L'apprentissage d'un modèle unique pour l'ensemble du jeu présente plusieurs inconvénients :
+\begin{itemize}
+    \item \textbf{Différence d'objectifs} : Les objectifs de la phase de draft et de la phase de jeu sont différents. Le modèle de draft doit apprendre à placer les pions de manière stratégique par rapport aux placements adverses, tandis que le modèle de jeu doit apprendre à prendre des décisions tactiques pour gagner la partie.
+    \item \textbf{Représentation différente} : La phase de draft nécessite une représentation différente du plateau, car les pions ne sont pas encore placés. Un modèle distinct permet de gérer cette différence de manière plus efficace. Il est inutile d'utiliser les mêmes dimensions d'entrées/sortie pour les deux modèles.
+\end{itemize}
+
+\subsection{Approche d'apprentissage}
+\begin{itemize}
+    \item \textbf{Draft} : L'agent place les pions et est récompensé en fonction de la qualité du placement. La récompense est déterminée en fonction du déroulement de la partie.
+    \item \textbf{Jeu} : L'agent prend des décisions pour gagner la partie, en apprenant progressivment à l'aide des récompenses données par l'environnement à chacun de ses mouvements.
+\end{itemize}
 
 \section{Modèle 1} % TODO: Si on leur donne des noms c'est sympa
 Ce premier modèle prend en entrée une représentation du plateau de jeu et produit une distribution sur les mouvements possibles.
