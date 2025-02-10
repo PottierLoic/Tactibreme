@@ -33,6 +33,8 @@ class Agent:
         self.network: nn.Module = network
         self.epsilon: float = epsilon
         self.gamma: float = gamma
+        self.learning_rate: float = learning_rate
+        self.buffer_size: int = buffer_size
         self.optimizer: torch.optim.Optimizer = torch.optim.Adam(
             self.network.parameters(), lr=learning_rate
         )
@@ -139,11 +141,13 @@ class Agent:
         batch = random.sample(self.memory, batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
 
-        states = torch.cat(states)
-        actions = torch.tensor(actions, dtype=torch.long)
-        rewards = torch.tensor(rewards, dtype=torch.float32)
-        next_states = torch.cat(next_states)
-        dones = torch.tensor(dones, dtype=torch.float32)
+        device = self.network.device
+
+        states = torch.cat(states).to(device)
+        actions = torch.tensor(actions, dtype=torch.long, device=device)
+        rewards = torch.tensor(rewards, dtype=torch.float32, device=device)
+        next_states = torch.cat(next_states).to(device)
+        dones = torch.tensor(dones, dtype=torch.float32, device=device)
 
         q_values = self.network(states)
         q_values = q_values.gather(1, actions.unsqueeze(-1)).squeeze()

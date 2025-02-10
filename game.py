@@ -1,3 +1,4 @@
+from tqdm import tqdm
 from enum import Enum
 from logger import get_logger
 from ai.agent import Agent, decode_action, encode_action
@@ -9,32 +10,88 @@ from reward import calculate_reward
 from stats import Stats
 
 class Game:
-    def __init__(self):
+    def __init__(self, agent1_path=None, agent2_path=None, num_games=1000, mode="train", **agent_params):
+        """
+        Initializes the game with different modes:
+        
+        - "train": Loads two agent checkpoints (or starts fresh if none are provided) and trains them.
+        - "ai_vs_ai": Runs a fixed number of games with two AIs facing each other (without training).
+        - "play_vs_ai": Allows a real player to play against an AI (without training).
+
+        Args:
+            agent1_path (str, optional): Path to the saved model of the first agent.
+            agent2_path (str, optional): Path to the saved model of the second agent.
+            num_games (int, optional): Number of games to play/train. Default is 1000.
+            mode (str, optional): Mode of operation: "train", "ai_vs_ai", or "play_vs_ai". Default is "train".
+            agent_params (dict, optional): Additional hyperparameters for initializing agents.
+        """
         self.board = Board()
         self.current_turn = Color.BLUE
         self.retreat_activated = False
         self.retreat_position = None
-        self.real_player = False
+        self.real_player = mode == "play_vs_ai"
+        self.num_games = num_games
+        self.mode = mode
         self.stats = Stats()
-        self.network1 = Network()
+
+        # TODO: get name of the models from main for saving purposes later
         self.agent1 = Agent(
             color=Color.BLUE,
-            network=self.network1,
-            epsilon=0.1,
-            gamma=0.99,
-            learning_rate=1e-3,
-            buffer_size=10000,
+            network=Network(),
+            **agent_params
         )
-
-        self.network2 = Network()
+        
         self.agent2 = Agent(
             color=Color.RED,
-            network=self.network2,
-            epsilon=0.1,
-            gamma=0.99,
-            learning_rate=1e-3,
-            buffer_size=10000,
+            network=Network(),
+            **agent_params
         )
+
+        if mode == "train":
+            if agent1_path:
+                self.agent1.load_checkpoint(agent1_path)
+                get_logger(__name__).info(f"Loaded Agent 1 from {agent1_path}")
+            if agent2_path:
+                self.agent2.load_checkpoint(agent2_path)
+                get_logger(__name__).info(f"Loaded Agent 2 from {agent2_path}")
+
+    def train_agents(self) -> None:
+        """
+        Train the AI agents for a specified number of games.
+        """
+        checkpoint_interval = 5
+        for i in range(0, self.num_games, checkpoint_interval):
+            games_to_play = min(checkpoint_interval, self.num_games - i)
+            progress_bar = tqdm(range(games_to_play), desc=f"Training Games {i+1}-{i+games_to_play}", unit="game", dynamic_ncols=True)
+            for game in progress_bar:   
+                self.reset_game()
+                done = False
+                while not done:
+                    agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
+                    state_tensor = agent.encode_board(self.board)
+                    valid_moves = self.get_valid_moves(self.current_turn)
+                    if not valid_moves:
+                        get_logger(__name__).debug("No valid moves, ending game.")
+                        break
+                    move_idx = agent.select_action(self.board, valid_moves)
+                    paw_index, destination = decode_action(move_idx)
+                    all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
+                    agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
+                    selected_paw = agent_paws[paw_index]
+
+                    reward = calculate_reward(self.board, (paw_index, destination), self.current_turn)
+                    self.process_move(selected_paw, destination)
+
+                    next_state_tensor = agent.encode_board(self.board)
+                    agent.store_transition(state_tensor, move_idx, reward, next_state_tensor, done=False)
+                    agent.train(batch_size=32)
+
+                    self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
+                progress_bar.update(1)
+        progress_bar.close()
+        self.agent1.save_checkpoint("agent1_checkpoint.pth")
+        self.agent2.save_checkpoint("agent2_checkpoint.pth")
+        get_logger(__name__).info("Training complete!")
 
     def reset_game(self) -> None:
         """
