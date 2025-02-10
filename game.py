@@ -59,41 +59,38 @@ class Game:
         """
         Train the AI agents for a specified number of games.
         """
-        progress_bar = tqdm(range(self.num_games), desc="Training Progress", unit="game", dynamic_ncols=True)
-        for game in progress_bar:
-            self.reset_game()
-            done = False
-            while not done:
-                agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
-                state_tensor = agent.encode_board(self.board)
-                valid_moves = self.get_valid_moves(self.current_turn)
-                if not valid_moves:
-                    get_logger(__name__).debug("No valid moves, ending game.")
-                    break
-                move_idx = agent.select_action(self.board, valid_moves)
-                paw_index, destination = decode_action(move_idx)
-                all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
-                agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
-                selected_paw = agent_paws[paw_index]
+        checkpoint_interval = 5
+        for i in range(0, self.num_games, checkpoint_interval):
+            games_to_play = min(checkpoint_interval, self.num_games - i)
+            progress_bar = tqdm(range(games_to_play), desc=f"Training Games {i+1}-{i+games_to_play}", unit="game", dynamic_ncols=True)
+            for game in progress_bar:   
+                self.reset_game()
+                done = False
+                while not done:
+                    agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
+                    state_tensor = agent.encode_board(self.board)
+                    valid_moves = self.get_valid_moves(self.current_turn)
+                    if not valid_moves:
+                        get_logger(__name__).debug("No valid moves, ending game.")
+                        break
+                    move_idx = agent.select_action(self.board, valid_moves)
+                    paw_index, destination = decode_action(move_idx)
+                    all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
+                    agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
+                    selected_paw = agent_paws[paw_index]
 
-                reward = calculate_reward(self.board, (paw_index, destination), self.current_turn)
-                self.process_move(selected_paw, destination)
+                    reward = calculate_reward(self.board, (paw_index, destination), self.current_turn)
+                    self.process_move(selected_paw, destination)
 
-                next_state_tensor = agent.encode_board(self.board)
-                agent.store_transition(state_tensor, move_idx, reward, next_state_tensor, done=False)
-                agent.train(batch_size=32)
+                    next_state_tensor = agent.encode_board(self.board)
+                    agent.store_transition(state_tensor, move_idx, reward, next_state_tensor, done=False)
+                    agent.train(batch_size=32)
 
-                self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
-
-            if (game + 1) % 5 == 0:
-                self.agent1.save_checkpoint("agent1_checkpoint.pth")
-                self.agent2.save_checkpoint("agent2_checkpoint.pth")
-                get_logger(__name__).info(f"Checkpoint saved at game {game + 1}")
-            progress_bar.update(1)
-
+                    self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
+                progress_bar.update(1)
+        progress_bar.close()
         self.agent1.save_checkpoint("agent1_checkpoint.pth")
         self.agent2.save_checkpoint("agent2_checkpoint.pth")
-        progress_bar.close()
         get_logger(__name__).info("Training complete!")
 
     def reset_game(self) -> None:
