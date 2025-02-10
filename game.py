@@ -7,6 +7,7 @@ from board import Board, GameFinished
 from color import Color
 from paw import Paw
 from reward import calculate_reward
+from stats import Stats
 
 class Game:
     def __init__(self, agent1_path=None, agent2_path=None, num_games=1000, mode="train", **agent_params):
@@ -31,6 +32,7 @@ class Game:
         self.real_player = mode == "play_vs_ai"
         self.num_games = num_games
         self.mode = mode
+        self.stats = Stats()
 
         # TODO: get name of the models from main for saving purposes later
         self.agent1 = Agent(
@@ -102,6 +104,7 @@ class Game:
         self.current_turn = Color.BLUE
         self.retreat_activated = False
         self.retreat_position = None
+        self.stats = Stats()
         get_logger(__name__).debug("Game has been reset. A new game starts!")
 
     def process_move(self, selected_paw: Paw, destination: tuple[int, int]) -> None:
@@ -113,8 +116,10 @@ class Game:
             destination (tuple[int, int]): The target position.
         """
         self.retreat_activated = False
+        self.stats.moves_counter += 1
         possible_moves = self.board.possible_movements(selected_paw)
         if destination not in possible_moves:
+            self.stats.invalid_moves += 1
             return f"Invalid move. {destination} is not a valid destination."
         if self.board.move_paw(selected_paw, destination) == 1:
             get_logger(__name__).debug(f"{self.current_turn} activated the retreat.")
@@ -123,6 +128,7 @@ class Game:
 
         if self.board.check_win(destination):
             get_logger(__name__).debug(f"The winner is {selected_paw.color}!")
+            self.stats.pp_stats()
             self.reset_game()
             return
 
@@ -168,6 +174,7 @@ class Game:
                 self.board, (paw_index, destination), self.current_turn
             )
             self.process_move(selected_paw, destination)
+            agent.reward_counter += reward
             next_state_tensor = agent.encode_board(self.board)
             agent.store_transition(
                 state_tensor, move_idx, reward, next_state_tensor, done=False

@@ -1,6 +1,5 @@
 import copy
 from typing import Tuple
-
 from board import Board
 from color import Color
 
