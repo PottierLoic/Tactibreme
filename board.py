@@ -37,7 +37,7 @@ class Board:
             self.paws_coverage[pos] = [paw]
         self.retreat_status = Retreat()
 
-    def move_paw(self, paw: Paw, destination: tuple[int, int]):
+    def move_paw(self, paw: Paw, destination: tuple[int, int]) -> bool:
         """
         Move a paw to a new position.
         Args:
@@ -49,9 +49,7 @@ class Board:
         if not self.is_valid_position(destination):
             raise ValueError(f"Invalid destination: {destination}")
         if destination not in self.possible_movements(paw):
-            raise ValueError(
-                f"Destination {destination} is not possible for {paw.paw_type}"
-            )
+            return False  # TODO see if the return is good like this
         self.retreat_status.is_activated = False
         origin_pos = paw.position
         paw_at_origin = self.find_paw_at(origin_pos)
@@ -81,6 +79,7 @@ class Board:
             self.retreat_status.paw_to_move = self.get_biggest_paw(
                 self.other_color(paw.color), self.paws_coverage[destination]
             )
+        return True  # TODO see if the return is god like this
 
     def other_color(self, color: Color) -> Color:
         return Color((color.value + 1) % 2)
