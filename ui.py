@@ -13,7 +13,7 @@ class Plot:
         self.label = label
         self.color = color
 
-def plot_rewards(game):
+def plot_rewards(game, STOP_EVENT):
     plt.ion()
     fig, axes = plt.subplots(2, 2)
 
@@ -31,7 +31,7 @@ def plot_rewards(game):
     rewards_counter_blue = []
     rewards_counter_red  = []
 
-    while True:
+    while not STOP_EVENT.is_set():
         rewards_agent1 = [entry[2] for entry in game.agent1.memory]
         rewards_agent2 = [entry[2] for entry in game.agent2.memory]
         plot(
@@ -65,11 +65,8 @@ def plot_rewards(game):
             ]
         )
 
+        plt.show()
         plt.pause(1)
 
+    # STOP_EVENT.set()
     plt.ioff()
-    plt.show()
-
-def start_plotting_thread(game):
-    plot_thread = threading.Thread(target=plot_rewards, args=(game,), daemon=True)
-    plot_thread.start()

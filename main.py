@@ -14,7 +14,8 @@ from paw import Paw
 from ui import *
 
 lock = threading.Lock()
-
+STOP_EVENT = threading.Event()
+pool = []
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -154,7 +155,7 @@ class Context:
             self.possible_moves = self.game.board.possible_movements(self.selected_paw)
 
 
-def run_training(args, controller):
+def run_training(args, controller, STOP_EVENT):
     """Runs the training in a separate thread while UI runs on main thread"""
     if args.load:
         game = Game(
@@ -175,7 +176,7 @@ def run_training(args, controller):
         game = Game(num_games=args.count, mode="train", **valid_hyperparams)
     with lock:
         controller.game = game
-    game.train_agents()
+    game.train_agents(STOP_EVENT)
 
 
 def run_ui(controller):
@@ -184,8 +185,7 @@ def run_ui(controller):
     screen = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
     pygame.display.set_caption("Les Tacticiens de Brême")
 
-    running = True
-    while running:
+    while not STOP_EVENT.is_set():
         screen.fill(BLACK)
         controller.draw_grid(screen)
         controller.draw_paws(screen)
@@ -195,25 +195,31 @@ def run_ui(controller):
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                STOP_EVENT.set()
 
     pygame.quit()
 
+def input_stop():
+    while not STOP_EVENT.is_set():
+        cmd = input().strip().lower()
+        if cmd == "q":
+            print("Warning: Training aborted, current game not recorded.")
+            STOP_EVENT.set()
 
-def main() -> None:
+def main():
     args = parse_args()
     if args.command == "train":
         controller = Context()
+        input_thread = threading.Thread(target=input_stop)
+        input_thread.start()
+        pool.append(input_thread)
         if args.ui:
-            train_thread = threading.Thread(
-                target=run_training, args=(args, controller)
-            )
-            train_thread.start()
-            run_ui(controller)
-            train_thread.join()
-        else:
-            run_training(args, controller)
-
+            ui_thread = threading.Thread(target=run_ui, args=(controller,))
+            ui_thread.start()
+            pool.append(ui_thread)
+        run_training(args, controller, STOP_EVENT)
+    for thread in pool:
+        thread.join()
 
 if __name__ == "__main__":
     main()

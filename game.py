@@ -13,7 +13,7 @@ class Game:
     def __init__(self, agent1_path=None, agent2_path=None, num_games=1000, mode="train", **agent_params):
         """
         Initializes the game with different modes:
-        
+
         - "train": Loads two agent checkpoints (or starts fresh if none are provided) and trains them.
         - "ai_vs_ai": Runs a fixed number of games with two AIs facing each other (without training).
         - "play_vs_ai": Allows a real player to play against an AI (without training).
@@ -40,7 +40,7 @@ class Game:
             network=Network(),
             **agent_params
         )
-        
+
         self.agent2 = Agent(
             color=Color.RED,
             network=Network(),
@@ -55,7 +55,7 @@ class Game:
                 self.agent2.load_checkpoint(agent2_path)
                 get_logger(__name__).info(f"Loaded Agent 2 from {agent2_path}")
 
-    def train_agents(self) -> None:
+    def train_agents(self, STOP_EVENT) -> None:
         """
         Train the AI agents for a specified number of games.
         """
@@ -63,10 +63,10 @@ class Game:
         for i in range(0, self.num_games, checkpoint_interval):
             games_to_play = min(checkpoint_interval, self.num_games - i)
             progress_bar = tqdm(range(games_to_play), desc=f"Training Games {i+1}-{i+games_to_play}", unit="game", dynamic_ncols=True)
-            for game in progress_bar:   
+            for game in progress_bar:
                 self.reset_game()
-                done = False
-                while not done:
+                game_finished = False
+                while (not game_finished) and (not STOP_EVENT.is_set()):
                     agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
                     state_tensor = agent.encode_board(self.board)
                     valid_moves = self.get_valid_moves(self.current_turn)
@@ -80,13 +80,19 @@ class Game:
                     selected_paw = agent_paws[paw_index]
 
                     reward = calculate_reward(self.board, (paw_index, destination), self.current_turn)
-                    self.process_move(selected_paw, destination)
-
+                    m = self.process_move(selected_paw, destination)
+                    if (m == 1):
+                        game_finished = True
                     next_state_tensor = agent.encode_board(self.board)
                     agent.store_transition(state_tensor, move_idx, reward, next_state_tensor, done=False)
                     agent.train(batch_size=32)
 
                     self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
+                if STOP_EVENT.is_set():
+                    STOP_EVENT.set()
+                    get_logger(__name__).info("Training aborted")
+                    return
+                self.stats.pp_stats()
                 progress_bar.update(1)
         progress_bar.close()
         self.agent1.save_checkpoint("agent1_checkpoint.pth")
@@ -117,17 +123,15 @@ class Game:
         possible_moves = self.board.possible_movements(selected_paw)
         if destination not in possible_moves:
             self.stats.invalid_moves += 1
-            return f"Invalid move. {destination} is not a valid destination."
+            return -1
         if self.board.move_paw(selected_paw, destination) == 1:
             get_logger(__name__).debug(f"{self.current_turn} activated the retreat.")
             self.retreat_position = destination
             self.retreat_activated = True
-
         if self.board.check_win(destination):
             get_logger(__name__).debug(f"The winner is {selected_paw.color}!")
-            self.stats.pp_stats()
-            self.reset_game()
-            return
+            return 1
+        return 0
 
     def play_turn(
         self, selected_paw: Paw = None, destination: tuple[int, int] = None
