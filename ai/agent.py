@@ -76,6 +76,20 @@ class Agent:
         self.network.eval()
         print(f"Model and hyperparameters loaded from {filepath}")
 
+    def create_mask(self, valid_moves: List[Tuple[int, Tuple[int, int]]]) -> Tensor:
+        """
+        Create a mask for valid moves.
+        Args:
+            valid_moves (list): List of valid (paw_index, destination) pairs.
+        Returns:
+            Tensor: A mask of size 100 with 1 for valid moves, 0 otherwise.
+        """
+        mask = torch.zeros(100, dtype=torch.float32)
+        for paw_index, (row, col) in valid_moves:
+            flat_index = paw_index * 25 + row * 5 + col
+            mask[flat_index] = 1
+        return mask
+
     def encode_board(self, board: Board) -> Tensor:
         """
         Encode the board state into a tensor.
@@ -112,7 +126,10 @@ class Agent:
             return encode_action(random_move)
 
         output = self.network(state_tensor).detach().squeeze()
-        best_move_index = torch.argmax(output).item()
+        mask = self.create_mask(valid_moves)
+        masked_output = output * mask
+        masked_output[mask == 0] = -float("inf")
+        best_move_index = torch.argmax(masked_output).item()
         return best_move_index
 
     def store_transition(
