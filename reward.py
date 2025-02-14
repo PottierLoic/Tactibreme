@@ -15,11 +15,8 @@ def calculate_reward(
     ]
     copy_agent_paws = board_copy.get_unicolor_list(copy_all_paws, color)
     selected_paw_copy = copy_agent_paws[paw_index]
-    move_result = board_copy.move_paw(selected_paw_copy, destination)
-    if not move_result:
-        total_reward -= 10
-    else:
-        total_reward += 5
+    board_copy.move_paw(selected_paw_copy, destination)
+
     if board_copy.check_win(destination):
         total_reward += 100
     return total_reward

@@ -92,7 +92,7 @@ class Game:
                     STOP_EVENT.set()
                     get_logger(__name__).info("Training aborted")
                     return
-                self.stats.pp_stats()
+                # self.stats.pp_stats()
                 progress_bar.update(1)
         progress_bar.close()
         self.agent1.save_checkpoint("agent1_checkpoint.pth")
