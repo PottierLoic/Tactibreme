@@ -189,7 +189,7 @@ class Game:
                 self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
             progress_bar.update(1)
         progress_bar.close()
-        print(blue_wins/self.num_games)
+        print(f"Blue win rate: {float(blue_wins) / self.num_games * 100:.2f}%")
         if STOP_EVENT.is_set():
             get_logger(__name__).info("Recording aborted")
         else:

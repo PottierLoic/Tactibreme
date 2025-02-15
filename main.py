@@ -21,72 +21,28 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="TACTIBREME: Train an AI and play board game matches"
     )
+    parser.add_argument("--ui", action="store_true", help="Enable pygame UI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Train Command
     train_parser = subparsers.add_parser("train", help="Train an AI model")
     train_parser.add_argument("name", type=str, help="Name of the AI model")
-    train_parser.add_argument(
-        "--count", type=int, default=1000, help="Number of games to train"
-    )
-    train_parser.add_argument(
-        "--load",
-        nargs=2,
-        metavar=("AGENT1", "AGENT2"),
-        help="Paths to two existing models to continue training",
-    )
+    train_parser.add_argument("--count", type=int, default=1000, help="Number of games to train")
+    train_parser.add_argument("--load", nargs=2, metavar=("AGENT1", "AGENT2"), help="Paths to two models")
     train_parser.add_argument("--epsilon", type=float, help="Exploration rate")
     train_parser.add_argument("--decay", type=float, help="Decay rate")
     train_parser.add_argument("--gamma", type=float, help="Discount factor")
     train_parser.add_argument("--lr", type=float, help="Learning rate")
     train_parser.add_argument("--record", type=str, help="File to save match history")
-    train_parser.add_argument(
-        "--stats", type=str, help="File to save training statistics"
-    )
+    train_parser.add_argument("--stats", type=str, help="File to save training statistics")
     train_parser.add_argument("--ui", action="store_true", help="Enable pygame UI.")
 
     # AI vs AI Command
     record_parser = subparsers.add_parser("record", help="Play AI vs AI matches")
-    record_parser.add_argument(
-        "--count",
-        type=int,
-        default=100,
-        help="Number of matches to play"
-    )
-    record_parser.add_argument(
-        "--blue",
-        type=str,
-        required=True,
-        help="Path to blue AI model"
-    )
-    record_parser.add_argument(
-        "--red",
-        type=str,
-        required=True,
-        help="Path to red AI model"
-    )
-    record_parser.add_argument(
-        "--ui",
-        action="store_true",
-        help="Enable pygame UI"
-    )
-
-    # # AI vs AI Command
-    # record_parser = subparsers.add_parser("record", help="Play AI vs AI matches")
-    # record_parser.add_argument("--count", type=int, default=100, help="Number of matches to play")
-    # record_parser.add_argument("--blue", type=str, help="Path to blue AI model")
-    # record_parser.add_argument("--red", type=str, help="Path to red AI model")
-    # record_parser.add_argument("--record", type=str, help="File to save match history")
-    # record_parser.add_argument("--stats", type=str, help="File to save match statistics")
-    #
-    # # Demo Command
-    # demo_parser = subparsers.add_parser("demo", help="Replay recorded matches")
-    # demo_parser.add_argument("csv", type=str, help="CSV file containing match history")
-    #
-    # # Stats Command
-    # stats_parser = subparsers.add_parser("stats", help="Generate match statistics")
-    # stats_parser.add_argument("csv", type=str, help="CSV file containing match history")
-
+    record_parser.add_argument("--count", type=int, default=100, help="Number of matches to play")
+    record_parser.add_argument("--blue", type=str, required=True, help="Path to blue AI model")
+    record_parser.add_argument("--red", type=str, required=True, help="Path to red AI model")
+    record_parser.add_argument("--ui", action="store_true", help="Enable pygame UI")
     return parser.parse_args()
 
 
@@ -181,7 +137,7 @@ class Context:
             self.possible_moves = self.game.board.possible_movements(self.selected_paw)
 
 
-def run_training(args, controller, STOP_EVENT):
+def run_training(args, controller):
     """Runs the training in a separate thread while UI runs on main thread"""
     if args.load:
         game = Game(
@@ -238,7 +194,7 @@ def input_stop():
             print("Warning: Training aborted, current game not recorded.")
             STOP_EVENT.set()
 
-def run_record(args, controller, STOP_EVENT):
+def run_record(args, controller):
     """Runs AI vs AI matches while UI runs on main thread"""
     game = Game(
         agent1_path=args.blue,
@@ -253,28 +209,24 @@ def run_record(args, controller, STOP_EVENT):
         controller.game = game
     game.record_games(STOP_EVENT)
 
+def setup_threads(args, controller):
+    input_thread = threading.Thread(target=input_stop)
+    input_thread.start()
+    pool.append(input_thread)
+    if args.ui:
+        ui_thread = threading.Thread(target=run_ui, args=(controller,))
+        ui_thread.start()
+        pool.append(ui_thread)
+
 def main():
     args = parse_args()
-    if args.command == "train":
-        controller = Context()
-        input_thread = threading.Thread(target=input_stop)
-        input_thread.start()
-        pool.append(input_thread)
-        if args.ui:
-            ui_thread = threading.Thread(target=run_ui, args=(controller,))
-            ui_thread.start()
-            pool.append(ui_thread)
-        run_training(args, controller, STOP_EVENT)
-    elif args.command == "record":
-        controller = Context()
-        input_thread = threading.Thread(target=input_stop)
-        input_thread.start()
-        pool.append(input_thread)
-        if args.ui:
-            ui_thread = threading.Thread(target=run_ui, args=(controller,))
-            ui_thread.start()
-            pool.append(ui_thread)
-        run_record(args, controller, STOP_EVENT)
+    controller = Context()
+    setup_threads(args, controller)
+    command_map = {
+        "train": run_training,
+        "record": run_record,
+    }
+    command_map[args.command](args, controller)
     for thread in pool:
         thread.join()
 

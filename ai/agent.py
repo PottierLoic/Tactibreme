@@ -58,7 +58,7 @@ class Agent:
             "buffer_size": self.buffer_size,
         }
         torch.save(checkpoint, filepath)
-        print(f"Model and hyperparameters saved to {filepath}")
+        get_logger(__name__).info(f"Model and hyperparameters saved to {filepath}")
 
     def load_checkpoint(self, filepath: str) -> None:
         """
@@ -74,7 +74,7 @@ class Agent:
         self.learning_rate = checkpoint["learning_rate"]
         self.buffer_size = checkpoint["buffer_size"]
         self.network.eval()
-        print(f"Model and hyperparameters loaded from {filepath}")
+        get_logger(__name__).info(f"Model and hyperparameters loaded from {filepath}")
 
     def create_mask(self, valid_moves: List[Tuple[int, Tuple[int, int]]]) -> Tensor:
         """
