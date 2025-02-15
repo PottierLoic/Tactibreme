@@ -126,7 +126,7 @@ class Agent:
             return encode_action(random_move)
 
         output = self.network(state_tensor).detach().squeeze()
-        mask = self.create_mask(valid_moves)
+        mask = self.create_mask(valid_moves).to(self.network.device)
         masked_output = output * mask
         masked_output[mask == 0] = -float("inf")
         best_move_index = torch.argmax(masked_output).item()
