@@ -45,6 +45,32 @@ def parse_args():
     )
     train_parser.add_argument("--ui", action="store_true", help="Enable pygame UI.")
 
+    # AI vs AI Command
+    record_parser = subparsers.add_parser("record", help="Play AI vs AI matches")
+    record_parser.add_argument(
+        "--count",
+        type=int,
+        default=100,
+        help="Number of matches to play"
+    )
+    record_parser.add_argument(
+        "--blue",
+        type=str,
+        required=True,
+        help="Path to blue AI model"
+    )
+    record_parser.add_argument(
+        "--red",
+        type=str,
+        required=True,
+        help="Path to red AI model"
+    )
+    record_parser.add_argument(
+        "--ui",
+        action="store_true",
+        help="Enable pygame UI"
+    )
+
     # # AI vs AI Command
     # record_parser = subparsers.add_parser("record", help="Play AI vs AI matches")
     # record_parser.add_argument("--count", type=int, default=100, help="Number of matches to play")
@@ -163,6 +189,7 @@ def run_training(args, controller, STOP_EVENT):
             agent2_path=args.load[1],
             num_games=args.count,
             mode="train",
+            model_name=args.name,
         )
         get_logger(__name__).info(
             f"Continuing training from {args.load[0]} and {args.load[1]}"
@@ -173,7 +200,12 @@ def run_training(args, controller, STOP_EVENT):
             for k, v in vars(args).items()
             if v is not None and k in ["epsilon", "decay", "gamma", "lr"]
         }
-        game = Game(num_games=args.count, mode="train", **valid_hyperparams)
+        game = Game(
+            num_games=args.count,
+            mode="train",
+            model_name=args.name,
+            **valid_hyperparams
+        )
     with lock:
         controller.game = game
     game.train_agents(STOP_EVENT)
@@ -206,6 +238,21 @@ def input_stop():
             print("Warning: Training aborted, current game not recorded.")
             STOP_EVENT.set()
 
+def run_record(args, controller, STOP_EVENT):
+    """Runs AI vs AI matches while UI runs on main thread"""
+    game = Game(
+        agent1_path=args.blue,
+        agent2_path=args.red,
+        num_games=args.count,
+        mode="ai_vs_ai"
+    )
+    get_logger(__name__).info(
+        f"Starting AI vs AI matches with {args.blue} (blue) vs {args.red} (red)"
+    )
+    with lock:
+        controller.game = game
+    game.record_games(STOP_EVENT)
+
 def main():
     args = parse_args()
     if args.command == "train":
@@ -218,6 +265,16 @@ def main():
             ui_thread.start()
             pool.append(ui_thread)
         run_training(args, controller, STOP_EVENT)
+    elif args.command == "record":
+        controller = Context()
+        input_thread = threading.Thread(target=input_stop)
+        input_thread.start()
+        pool.append(input_thread)
+        if args.ui:
+            ui_thread = threading.Thread(target=run_ui, args=(controller,))
+            ui_thread.start()
+            pool.append(ui_thread)
+        run_record(args, controller, STOP_EVENT)
     for thread in pool:
         thread.join()
 
