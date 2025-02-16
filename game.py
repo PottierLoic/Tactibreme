@@ -1,3 +1,4 @@
+import random
 from tqdm import tqdm
 from enum import Enum
 from logger import get_logger
@@ -66,10 +67,11 @@ class Game:
         progress_bar = tqdm(range(self.num_games), desc="Training Games", unit="game", dynamic_ncols=True)
         for _ in range(self.num_games):
             self.reset_game()
+            self.current_turn = random.choice([Color.BLUE, Color.RED])
             game_finished = False
             while (not game_finished) and (not STOP_EVENT.is_set()):
                 agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
-                state_tensor = agent.encode_board(self.board)
+                state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
                 valid_moves = self.get_valid_moves(self.current_turn)
                 if not valid_moves:
                     get_logger(__name__).debug("No valid moves, ending game.")
@@ -84,7 +86,7 @@ class Game:
                 m = self.process_move(selected_paw, destination)
                 if (m == 1):
                     game_finished = True
-                next_state_tensor = agent.encode_board(self.board)
+                next_state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
                 agent.store_transition(state_tensor, move_idx, reward, next_state_tensor, done=False)
                 agent.train(batch_size=32)
                 self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
