@@ -90,23 +90,25 @@ class Agent:
             mask[flat_index] = 1
         return mask
 
-    def encode_board(self, board: Board) -> Tensor:
+    def encode_board(self, board: Board, reverse: bool = False) -> Tensor:
         """
         Encode the board state into a tensor.
         Args:
             board (Board): The current board state.
+            reverse (bool): If True, rotate the board and swap colors.
         Returns:
             Tensor: Encoded board state of shape (1, 8, 5, 5).
         """
         state = torch.zeros((8, 5, 5), dtype=torch.float32)
         for pos, paws in board.paws_coverage.items():
             row, col = pos
+            if reverse:
+                row = 4 - row
+                col = 4 - col
             for paw in paws:
                 idx = paw.paw_type.value - 1
-                if paw.color == Color.BLUE:
-                    state[idx, row, col] = 1
-                elif paw.color == Color.RED:
-                    state[idx + 4, row, col] = 1
+                channel = idx + 4 if ((not reverse and paw.color == Color.RED) or (reverse and paw.color == Color.BLUE)) else idx
+                state[channel, row, col] = 1
         return state.unsqueeze(0)
 
     def select_action(
