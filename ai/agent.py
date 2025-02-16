@@ -112,17 +112,18 @@ class Agent:
         return state.unsqueeze(0)
 
     def select_action(
-        self, board: Board, valid_moves: List[Tuple[int, Tuple[int, int]]]
+        self, board: Board, valid_moves: List[Tuple[int, Tuple[int, int]]], reverse: bool = False
     ) -> Tuple[int, Tuple[int, int]]:
         """
         Select an action based on the current policy.
         Args:
             board (Board): The current board state.
             valid_moves (list): List of valid moves (paw_index, destination). # TODO
+            reverse (bool): If True, rotate the board and swap colors.
         Returns:
             tuple: Selected (paw_index, destination).
         """
-        state_tensor = self.encode_board(board)
+        state_tensor = self.encode_board(board, reverse)
         if random.random() < self.epsilon:
             random_move = random.choice(valid_moves)
             return encode_action(random_move)

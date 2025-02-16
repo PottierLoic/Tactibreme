@@ -76,7 +76,7 @@ class Game:
                 if not valid_moves:
                     get_logger(__name__).debug("No valid moves, ending game.")
                     break
-                move_idx = agent.select_action(self.board, valid_moves)
+                move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
                 paw_index, destination = decode_action(move_idx)
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
                 agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
@@ -163,21 +163,22 @@ class Game:
         """
         Run AI vs AI matches without training.
         """
-        blue_wins = 0
+        agent1_wins = 0
         progress_bar = tqdm(range(self.num_games), desc="Playing Games", unit="game")
         for _ in range(self.num_games):
             if STOP_EVENT.is_set():
                 break
             self.reset_game()
+            self.current_turn = random.choice([Color.BLUE, Color.RED])
             game_finished = False
             while not game_finished and not STOP_EVENT.is_set():
                 agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
-                state_tensor = agent.encode_board(self.board)
+                state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
                 valid_moves = self.get_valid_moves(self.current_turn)
                 if not valid_moves:
                     get_logger(__name__).debug("No valid moves, ending game.")
                     break
-                move_idx = agent.select_action(self.board, valid_moves)
+                move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
                 paw_index, destination = decode_action(move_idx)
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
                 agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
@@ -186,12 +187,12 @@ class Game:
                 m = self.process_move(selected_paw, destination)
                 if (m == 1):
                     game_finished = True
-                    if self.current_turn == Color.BLUE:
-                        blue_wins +=1
+                    if agent == self.agent1:
+                        agent1_wins += 1
                 self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
             progress_bar.update(1)
         progress_bar.close()
-        print(f"Blue win rate: {float(blue_wins) / self.num_games * 100:.2f}%")
+        print(f"Agent1 win rate: {float(agent1_wins) / self.num_games * 100:.2f}%")
         if STOP_EVENT.is_set():
             get_logger(__name__).info("Recording aborted")
         else:
