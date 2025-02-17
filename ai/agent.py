@@ -66,7 +66,8 @@ class Agent:
         Args:
             filepath (str): Path to the model checkpoint file.
         """
-        checkpoint = torch.load(filepath)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        checkpoint = torch.load(filepath, map_location=device)
         self.network.load_state_dict(checkpoint["model_state_dict"])
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         self.epsilon = checkpoint["epsilon"]
