@@ -73,6 +73,9 @@ class Context:
                 y = row * CELL_SIZE + CELL_SIZE // 2
                 radius = CELL_SIZE // (3 + (paw.paw_type.value / 2))
                 pygame.draw.circle(
+                    screen, BLACK, (int(x), int(y)), int(radius + 2)
+                )
+                pygame.draw.circle(
                     screen, paw.color.name, (int(x), int(y)), int(radius)
                 )
                 font = pygame.font.Font(None, 24)
