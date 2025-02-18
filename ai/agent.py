@@ -58,7 +58,7 @@ class Agent:
             "buffer_size": self.buffer_size,
         }
         torch.save(checkpoint, filepath)
-        print(f"Model and hyperparameters saved to {filepath}")
+        get_logger(__name__).info(f"Model and hyperparameters saved to {filepath}")
 
     def load_checkpoint(self, filepath: str) -> None:
         """
@@ -66,7 +66,8 @@ class Agent:
         Args:
             filepath (str): Path to the model checkpoint file.
         """
-        checkpoint = torch.load(filepath)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        checkpoint = torch.load(filepath, map_location=device)
         self.network.load_state_dict(checkpoint["model_state_dict"])
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         self.epsilon = checkpoint["epsilon"]
@@ -74,7 +75,7 @@ class Agent:
         self.learning_rate = checkpoint["learning_rate"]
         self.buffer_size = checkpoint["buffer_size"]
         self.network.eval()
-        print(f"Model and hyperparameters loaded from {filepath}")
+        get_logger(__name__).info(f"Model and hyperparameters loaded from {filepath}")
 
     def create_mask(self, valid_moves: List[Tuple[int, Tuple[int, int]]]) -> Tensor:
         """
@@ -90,37 +91,40 @@ class Agent:
             mask[flat_index] = 1
         return mask
 
-    def encode_board(self, board: Board) -> Tensor:
+    def encode_board(self, board: Board, reverse: bool = False) -> Tensor:
         """
         Encode the board state into a tensor.
         Args:
             board (Board): The current board state.
+            reverse (bool): If True, rotate the board and swap colors.
         Returns:
             Tensor: Encoded board state of shape (1, 8, 5, 5).
         """
         state = torch.zeros((8, 5, 5), dtype=torch.float32)
         for pos, paws in board.paws_coverage.items():
             row, col = pos
+            if reverse:
+                row = 4 - row
+                col = 4 - col
             for paw in paws:
                 idx = paw.paw_type.value - 1
-                if paw.color == Color.BLUE:
-                    state[idx, row, col] = 1
-                elif paw.color == Color.RED:
-                    state[idx + 4, row, col] = 1
+                channel = idx + 4 if ((not reverse and paw.color == Color.RED) or (reverse and paw.color == Color.BLUE)) else idx
+                state[channel, row, col] = 1
         return state.unsqueeze(0)
 
     def select_action(
-        self, board: Board, valid_moves: List[Tuple[int, Tuple[int, int]]]
+        self, board: Board, valid_moves: List[Tuple[int, Tuple[int, int]]], reverse: bool = False
     ) -> Tuple[int, Tuple[int, int]]:
         """
         Select an action based on the current policy.
         Args:
             board (Board): The current board state.
             valid_moves (list): List of valid moves (paw_index, destination). # TODO
+            reverse (bool): If True, rotate the board and swap colors.
         Returns:
             tuple: Selected (paw_index, destination).
         """
-        state_tensor = self.encode_board(board)
+        state_tensor = self.encode_board(board, reverse)
         if random.random() < self.epsilon:
             random_move = random.choice(valid_moves)
             return encode_action(random_move)

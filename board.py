@@ -18,7 +18,6 @@ class Retreat:
 
 class Board:
     def __init__(self) -> None:
-        random.seed(42)
         paws = [PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER, -1]
         self.paws_coverage: dict[tuple[int, int], list[Paw]] = {}
         random.shuffle(paws)

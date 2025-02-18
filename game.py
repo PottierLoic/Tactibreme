@@ -1,3 +1,4 @@
+import random
 from tqdm import tqdm
 from enum import Enum
 from logger import get_logger
@@ -10,7 +11,7 @@ from reward import calculate_reward
 from stats import Stats
 
 class Game:
-    def __init__(self, agent1_path=None, agent2_path=None, num_games=1000, mode="train", **agent_params):
+    def __init__(self, agent1_path=None, agent2_path=None, num_games=1000, mode="train", model_name=None, **agent_params):
         """
         Initializes the game with different modes:
 
@@ -23,6 +24,7 @@ class Game:
             agent2_path (str, optional): Path to the saved model of the second agent.
             num_games (int, optional): Number of games to play/train. Default is 1000.
             mode (str, optional): Mode of operation: "train", "ai_vs_ai", or "play_vs_ai". Default is "train".
+            model_name (str, optional): Name used to save the trained models. Required for train mode.
             agent_params (dict, optional): Additional hyperparameters for initializing agents.
         """
         self.board = Board()
@@ -32,22 +34,22 @@ class Game:
         self.real_player = mode == "play_vs_ai"
         self.num_games = num_games
         self.mode = mode
+        self.model_name = model_name
         self.stats = Stats()
 
-        # TODO: get name of the models from main for saving purposes later
-        self.agent1 = Agent(
-            color=Color.BLUE,
-            network=Network(),
-            **agent_params
-        )
+        if mode in ["train", "ai_vs_ai"]:
+            self.agent1 = Agent(
+                color=Color.BLUE,
+                network=Network(),
+                **agent_params
+            )
 
-        self.agent2 = Agent(
-            color=Color.RED,
-            network=Network(),
-            **agent_params
-        )
+            self.agent2 = Agent(
+                color=Color.RED,
+                network=Network(),
+                **agent_params
+            )
 
-        if mode == "train":
             if agent1_path:
                 self.agent1.load_checkpoint(agent1_path)
                 get_logger(__name__).info(f"Loaded Agent 1 from {agent1_path}")
@@ -59,18 +61,22 @@ class Game:
         """
         Train the AI agents for a specified number of games.
         """
+        if self.mode == "train" and not self.model_name:
+            raise ValueError("model_name is required for training mode")
+
         progress_bar = tqdm(range(self.num_games), desc="Training Games", unit="game", dynamic_ncols=True)
         for _ in range(self.num_games):
             self.reset_game()
+            self.current_turn = random.choice([Color.BLUE, Color.RED])
             game_finished = False
             while (not game_finished) and (not STOP_EVENT.is_set()):
                 agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
-                state_tensor = agent.encode_board(self.board)
+                state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
                 valid_moves = self.get_valid_moves(self.current_turn)
                 if not valid_moves:
                     get_logger(__name__).debug("No valid moves, ending game.")
                     break
-                move_idx = agent.select_action(self.board, valid_moves)
+                move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
                 paw_index, destination = decode_action(move_idx)
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
                 agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
@@ -80,7 +86,7 @@ class Game:
                 m = self.process_move(selected_paw, destination)
                 if (m == 1):
                     game_finished = True
-                next_state_tensor = agent.encode_board(self.board)
+                next_state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
                 agent.store_transition(state_tensor, move_idx, reward, next_state_tensor, done=False)
                 agent.train(batch_size=32)
                 self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
@@ -89,10 +95,10 @@ class Game:
                 get_logger(__name__).info("Training aborted")
                 return
             progress_bar.update(1)
+        self.agent1.save_checkpoint(f"{self.model_name}_blue.pth")
+        self.agent2.save_checkpoint(f"{self.model_name}_red.pth")
+        get_logger(__name__).info(f"Training complete! Models saved as {self.model_name}_blue.pth and {self.model_name}_red.pth")
         progress_bar.close()
-        self.agent1.save_checkpoint("agent1_checkpoint.pth")
-        self.agent2.save_checkpoint("agent2_checkpoint.pth")
-        get_logger(__name__).info("Training complete!")
 
     def reset_game(self) -> None:
         """
@@ -128,56 +134,6 @@ class Game:
             return 1
         return 0
 
-    def play_turn(
-        self, selected_paw: Paw = None, destination: tuple[int, int] = None
-    ) -> None:
-        """
-        Execute a turn in the game. If real_player is False, AI agents take turns automatically.
-        Otherwise, the human player controls their pieces.
-
-        Args:
-            selected_paw (Paw, optional): The paw the player wants to move (only used if real_player is True).
-            destination (tuple[int, int], optional): The target position for the paw (same).
-        """
-        if self.real_player:
-            if selected_paw is None or destination is None:
-                return "Invalid move. Please select a pawn and destination."
-            if selected_paw.color != self.current_turn:
-                return f"It's not {selected_paw.color}'s turn."
-            if self.retreat_activated and not self.board.valid_retreat_move(
-                selected_paw, destination, self.retreat_position
-            ):
-                return "This move is not valid during retreat."
-            self.process_move(selected_paw, destination)
-        else:
-            agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
-            state_tensor = agent.encode_board(self.board)
-            agent.color = self.current_turn
-            valid_moves = self.board.get_valid_moves(self.current_turn)
-            if not valid_moves:
-                get_logger(__name__).debug("AI has no valid moves.")
-                return
-            move_idx = agent.select_action(self.board, valid_moves)
-            paw_index, destination = decode_action(move_idx)
-            all_paws = [
-                paw
-                for paw_list in self.board.paws_coverage.values()
-                for paw in paw_list
-            ]
-            agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
-            selected_paw = agent_paws[paw_index]
-            reward = calculate_reward(
-                self.board, (paw_index, destination), self.current_turn
-            )
-            self.process_move(selected_paw, destination)
-            agent.reward_counter += reward
-            next_state_tensor = agent.encode_board(self.board)
-            agent.store_transition(
-                state_tensor, move_idx, reward, next_state_tensor, done=False
-            )
-            agent.train(batch_size=32)
-        self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
-
     def get_valid_moves(self, color: Color) -> list[tuple[int, tuple[int, int]]]:
         """
         Retrieve all possible moves for the given color.
@@ -202,3 +158,42 @@ class Game:
                 valid_moves.append((index, destination))
         get_logger(__name__).debug(valid_moves)
         return valid_moves
+
+    def record_games(self, STOP_EVENT) -> None:
+        """
+        Run AI vs AI matches without training.
+        """
+        agent1_wins = 0
+        progress_bar = tqdm(range(self.num_games), desc="Playing Games", unit="game")
+        for _ in range(self.num_games):
+            if STOP_EVENT.is_set():
+                break
+            self.reset_game()
+            self.current_turn = random.choice([Color.BLUE, Color.RED])
+            game_finished = False
+            while not game_finished and not STOP_EVENT.is_set():
+                agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
+                state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
+                valid_moves = self.get_valid_moves(self.current_turn)
+                if not valid_moves:
+                    get_logger(__name__).debug("No valid moves, ending game.")
+                    break
+                move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
+                paw_index, destination = decode_action(move_idx)
+                all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
+                agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
+                selected_paw = agent_paws[paw_index]
+
+                m = self.process_move(selected_paw, destination)
+                if (m == 1):
+                    game_finished = True
+                    if agent == self.agent1:
+                        agent1_wins += 1
+                self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
+            progress_bar.update(1)
+        progress_bar.close()
+        print(f"Agent1 win rate: {float(agent1_wins) / self.num_games * 100:.2f}%")
+        if STOP_EVENT.is_set():
+            get_logger(__name__).info("Recording aborted")
+        else:
+            get_logger(__name__).info("Recording complete!")
