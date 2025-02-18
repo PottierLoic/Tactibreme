@@ -13,7 +13,7 @@ class Agent:
         self,
         color: Color,
         network: nn.Module,
-        epsilon: float = 0.1,
+        epsilon: float = 1,
         gamma: float = 0.99,
         learning_rate: float = 1e-3,
         buffer_size: int = 10000,
@@ -180,7 +180,10 @@ class Agent:
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        self.update_epsilon()
 
+    def update_epsilon(self, min_epsilon: float = 0.01, decay_amount: float = 0.001) -> None:
+        self.epsilon = max(min_epsilon, self.epsilon - decay_amount)
 
 def encode_action(move: tuple[int, tuple[int, int]]) -> int:
     """
