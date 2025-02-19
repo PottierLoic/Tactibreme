@@ -2,7 +2,7 @@ import os
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 import argparse
-import sys
+import threading
 
 import pygame
 
@@ -11,7 +11,6 @@ from constants import *
 from game import Game
 from logger import get_logger
 from paw import Paw
-from ui import *
 
 lock = threading.Lock()
 STOP_EVENT = threading.Event()
