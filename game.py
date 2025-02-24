@@ -37,8 +37,6 @@ class Game:
         self.mode = mode
         self.model_name = model_name
         self.stats = Stats()
-        writer, csvfile = init_writer("test.csv")
-        self.writer = WriterBuffer(writer)
 
         if mode in ["train", "ai_vs_ai"]:
             self.agent1 = Agent(
@@ -66,6 +64,10 @@ class Game:
         """
         if self.mode == "train" and not self.model_name:
             raise ValueError("model_name is required for training mode")
+
+        filename = "train_rec_{}_{}.csv".format(self.num_games, self.model_name)
+        wrt, _ = init_writer(filename)
+        self.writer = WriterBuffer(wrt)
 
         progress_bar = tqdm(range(self.num_games), desc="Training Games", unit="game", dynamic_ncols=True)
         for _ in range(self.num_games):
@@ -178,6 +180,9 @@ class Game:
         """
         Run AI vs AI matches without training.
         """
+        filename = "record_rec_{}_{}.csv".format(self.num_games, self.model_name)
+        wrt, _ = init_writer(filename)
+        self.writer = WriterBuffer(wrt)
         agent1_wins = 0
         progress_bar = tqdm(range(self.num_games), desc="Playing Games", unit="game")
         for _ in range(self.num_games):
