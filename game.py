@@ -9,6 +9,7 @@ from color import Color
 from paw import Paw
 from reward import calculate_reward
 from stats import Stats
+from writerBuffer import init_writer, WriterBuffer
 
 class Game:
     def __init__(self, agent1_path=None, agent2_path=None, num_games=1000, mode="train", model_name=None, **agent_params):
@@ -64,6 +65,10 @@ class Game:
         if self.mode == "train" and not self.model_name:
             raise ValueError("model_name is required for training mode")
 
+        filename = "train_rec_{}_{}.csv".format(self.num_games, self.model_name)
+        wrt, _ = init_writer(filename)
+        self.writer = WriterBuffer(wrt)
+
         progress_bar = tqdm(range(self.num_games), desc="Training Games", unit="game", dynamic_ncols=True)
         for _ in range(self.num_games):
             self.reset_game()
@@ -71,6 +76,11 @@ class Game:
             game_finished = False
             while (not game_finished) and (not STOP_EVENT.is_set()):
                 agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
+                if agent == self.agent1:
+                    self.writer.set_agent(0)
+                else:
+                    self.writer.set_agent(1)
+                self.writer.set_epsilon(agent.epsilon)
                 state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
                 valid_moves = self.get_valid_moves(self.current_turn)
                 if not valid_moves:
@@ -83,7 +93,11 @@ class Game:
                 selected_paw = agent_paws[paw_index]
 
                 reward = calculate_reward(self.board, (paw_index, destination), self.current_turn)
+                self.writer.set_reward(reward)
                 m = self.process_move(selected_paw, destination)
+                self.writer.set_win(m)
+                self.writer.push()
+                self.writer.reset_line()
                 if (m == 1):
                     game_finished = True
                 next_state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
@@ -125,6 +139,9 @@ class Game:
         if destination not in possible_moves:
             self.stats.invalid_moves += 1
             return -1
+        self.writer.set_color(selected_paw.color.value)
+        self.writer.set_paw(selected_paw.paw_type.value)
+        self.writer.set_dest(destination[0], destination[1])
         if self.board.move_paw(selected_paw, destination) == 1:
             get_logger(__name__).debug(f"{self.current_turn} activated the retreat.")
             self.retreat_position = destination
@@ -163,6 +180,9 @@ class Game:
         """
         Run AI vs AI matches without training.
         """
+        filename = "record_rec_{}_{}.csv".format(self.num_games, self.model_name)
+        wrt, _ = init_writer(filename)
+        self.writer = WriterBuffer(wrt)
         agent1_wins = 0
         progress_bar = tqdm(range(self.num_games), desc="Playing Games", unit="game")
         for _ in range(self.num_games):
@@ -173,6 +193,10 @@ class Game:
             game_finished = False
             while not game_finished and not STOP_EVENT.is_set():
                 agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
+                if agent == self.agent1:
+                    self.writer.set_agent(0)
+                else:
+                    self.writer.set_agent(1)
                 state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
                 valid_moves = self.get_valid_moves(self.current_turn)
                 if not valid_moves:
@@ -183,8 +207,10 @@ class Game:
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
                 agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
                 selected_paw = agent_paws[paw_index]
-
                 m = self.process_move(selected_paw, destination)
+                self.writer.set_win(m)
+                self.writer.push()
+                self.writer.reset_line()
                 if (m == 1):
                     game_finished = True
                     if agent == self.agent1:
