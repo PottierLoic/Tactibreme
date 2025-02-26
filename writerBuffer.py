@@ -1,14 +1,12 @@
 import csv
-
-def init_writer(filename):
-    csvfile = open(filename, 'w', newline='')
-    writer = csv.writer(csvfile, delimiter=',',
-                    quotechar='"', quoting=csv.QUOTE_MINIMAL)
-    writer.writerow(['agent', 'color', 'id_paw', 'dest_x', 'dest_y', 'reward', 'win', 'epsilon'])
-    return writer, csvfile
+import os
 
 class WriterBuffer:
-    def __init__(self, writer):
+    def __init__(self, mode, game_amount, model_name):
+        os.makedirs('csv', exist_ok=True)
+        csvfile = open("csv/{}_rec_{}_{}.csv".format(mode, game_amount, model_name), 'w', newline='')
+        self.writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        self.writer.writerow(['agent', 'color', 'id_paw', 'dest_x', 'dest_y', 'reward', 'win', 'epsilon'])
         self.agent = None
         self.color = None
         self.id_paw = None
@@ -17,7 +15,6 @@ class WriterBuffer:
         self.reward = None
         self.win = None
         self.epsilon = None
-        self.writer = writer
 
     def reset_line(self):
         self.agent = None
