@@ -11,8 +11,7 @@ from color import Color
 from paw import Paw
 from reward import calculate_reward
 from stats import Stats
-from writerBuffer import init_writer, WriterBuffer
-from paw import *
+from writerBuffer import WriterBuffer
 
 class Game:
     def __init__(self, agent1_path=None, agent2_path=None, num_games=1000, mode="train", model_name=None, **agent_params):
@@ -105,11 +104,7 @@ class Game:
         """
         if self.mode == "train" and not self.model_name:
             raise ValueError("model_name is required for training mode")
-
-        filename = "train_rec_{}_{}.csv".format(self.num_games, self.model_name)
-        wrt, _ = init_writer(filename)
-        self.writer = WriterBuffer(wrt)
-
+        self.writer = WriterBuffer("train", self.num_games, self.model_name)
         progress_bar = tqdm(range(self.num_games), desc="Training Games", unit="game", dynamic_ncols=True)
         for _ in range(self.num_games):
             self.reset_game()
@@ -232,9 +227,7 @@ class Game:
         """
         Run AI vs AI matches without training.
         """
-        filename = "record_rec_{}.csv".format(self.num_games, self.model_name)
-        wrt, _ = init_writer(filename)
-        self.writer = WriterBuffer(wrt)
+        self.writer = WriterBuffer("record", self.num_games, self.model_name)
         agent1_wins = 0
         progress_bar = tqdm(range(self.num_games), desc="Playing Games", unit="game")
         for _ in range(self.num_games):
