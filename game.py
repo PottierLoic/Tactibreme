@@ -2,7 +2,7 @@ import random
 from tqdm import tqdm
 from enum import Enum
 from logger import get_logger
-from ai.agent import Agent, decode_action, encode_action
+from ai.game_agent import GameAgent, decode_action, encode_action
 from ai.network import Network
 from board import Board, GameFinished
 from color import Color
@@ -39,13 +39,13 @@ class Game:
         self.stats = Stats()
 
         if mode in ["train", "ai_vs_ai"]:
-            self.agent1 = Agent(
+            self.agent1 = GameAgent(
                 color=Color.BLUE,
                 network=Network(),
                 **agent_params
             )
 
-            self.agent2 = Agent(
+            self.agent2 = GameAgent(
                 color=Color.RED,
                 network=Network(),
                 **agent_params
