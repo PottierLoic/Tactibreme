@@ -8,7 +8,7 @@ from board import Board
 from color import Color
 
 
-class Agent:
+class AgentBase:
     def __init__(
         self,
         color: Color,
@@ -18,7 +18,7 @@ class Agent:
         learning_rate: float = 1e-3,
         buffer_size: int = 10000,
     ) -> None:
-        """
+        """s
         Initialize the Agent.
         Args:
             color (Color): The agent's color (RED or BLUE).
@@ -28,7 +28,6 @@ class Agent:
             learning_rate (float): Learning rate for the optimizer.
             buffer_size (int): Maximum size of the replay buffer.
         """
-        self.reward_counter = 0
         self.color: Color = color
         self.network: nn.Module = network
         self.epsilon: float = epsilon
@@ -78,63 +77,15 @@ class Agent:
         get_logger(__name__).info(f"Model and hyperparameters loaded from {filepath}")
 
     def create_mask(self, valid_moves: List[Tuple[int, Tuple[int, int]]]) -> Tensor:
-        """
-        Create a mask for valid moves.
-        Args:
-            valid_moves (list): List of valid (paw_index, destination) pairs.
-        Returns:
-            Tensor: A mask of size 100 with 1 for valid moves, 0 otherwise.
-        """
-        mask = torch.zeros(100, dtype=torch.float32)
-        for paw_index, (row, col) in valid_moves:
-            flat_index = paw_index * 25 + row * 5 + col
-            mask[flat_index] = 1
-        return mask
+        raise NotImplementedError("create_mask method not implemented.")
 
     def encode_board(self, board: Board, reverse: bool = False) -> Tensor:
-        """
-        Encode the board state into a tensor.
-        Args:
-            board (Board): The current board state.
-            reverse (bool): If True, rotate the board and swap colors.
-        Returns:
-            Tensor: Encoded board state of shape (1, 8, 5, 5).
-        """
-        state = torch.zeros((8, 5, 5), dtype=torch.float32)
-        for pos, paws in board.paws_coverage.items():
-            row, col = pos
-            if reverse:
-                row = 4 - row
-                col = 4 - col
-            for paw in paws:
-                idx = paw.paw_type.value - 1
-                channel = idx + 4 if ((not reverse and paw.color == Color.RED) or (reverse and paw.color == Color.BLUE)) else idx
-                state[channel, row, col] = 1
-        return state.unsqueeze(0)
+        raise NotImplementedError("encode_board method not implemented.")
 
     def select_action(
         self, board: Board, valid_moves: List[Tuple[int, Tuple[int, int]]], reverse: bool = False
     ) -> Tuple[int, Tuple[int, int]]:
-        """
-        Select an action based on the current policy.
-        Args:
-            board (Board): The current board state.
-            valid_moves (list): List of valid moves (paw_index, destination). # TODO
-            reverse (bool): If True, rotate the board and swap colors.
-        Returns:
-            tuple: Selected (paw_index, destination).
-        """
-        state_tensor = self.encode_board(board, reverse)
-        if random.random() < self.epsilon:
-            random_move = random.choice(valid_moves)
-            return agent_encode_action(random_move)
-
-        output = self.network(state_tensor).detach().squeeze()
-        mask = self.create_mask(valid_moves).to(self.network.device)
-        masked_output = output * mask
-        masked_output[mask == 0] = -float("inf")
-        best_move_index = torch.argmax(masked_output).item()
-        return best_move_index
+        raise NotImplementedError("select_action method not implemented.")
 
     def store_transition(
         self, state: Tensor, action: int, reward: float, next_state: Tensor, done: bool
@@ -183,22 +134,8 @@ class Agent:
         self.update_epsilon()
 
     def update_epsilon(self, min_epsilon: float = 0.01, decay_amount: float = 0.001) -> None:
+        """
+        Subtract decay_amount from epsilon until it reach min_epsilon
+        """
         self.epsilon = max(min_epsilon, self.epsilon - decay_amount)
 
-def agent_encode_action(move: tuple[int, tuple[int, int]]) -> int:
-    """
-    Convert (paw_index, (row, col)) into a single integer 0..99.
-    """
-    paw_index, (row, col) = move
-    return paw_index * 25 + row * 5 + col
-
-
-def agent_decode_action(action_idx: int) -> tuple[int, tuple[int, int]]:
-    """
-    Convert a single integer 0..99 back to (paw_index, (row, col)).
-    """
-    paw_index = action_idx // 25
-    destination_index = action_idx % 25
-    row = destination_index // 5
-    col = destination_index % 5
-    return paw_index, (row, col)

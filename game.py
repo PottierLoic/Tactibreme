@@ -2,7 +2,7 @@ import random
 from tqdm import tqdm
 from enum import Enum
 from logger import get_logger
-from ai.agent import Agent, agent_decode_action, agent_encode_action
+from ai.game_agent import GameAgent, decode_action, encode_action
 from ai.network import Network
 from ai.draft_network import Draft_network
 from ai.draft_agent import DraftAgent, draft_agent_decode_action, draft_agent_encode_action
@@ -42,12 +42,13 @@ class Game:
         self.draft_buffer : dict[Color, old] = {} # Color -> [(tensor_t0, move_idx, is_valid, tensor_t1)]
 
         if mode in ["train", "ai_vs_ai"]:
-            self.agent1 = Agent(
+            self.agent1 = GameAgent(
                 color=Color.BLUE,
                 network=Network(),
                 **agent_params
             )
-            self.agent2 = Agent(
+
+            self.agent2 = GameAgent(
                 color=Color.RED,
                 network=Network(),
                 **agent_params
