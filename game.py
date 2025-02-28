@@ -2,14 +2,18 @@ import random
 from tqdm import tqdm
 from enum import Enum
 from logger import get_logger
-from ai.agent import Agent, decode_action, encode_action
+from ai.agent import Agent, agent_decode_action, agent_encode_action
 from ai.network import Network
+from ai.draft_network import Draft_network
+from ai.placeur import Placeur#, placeur_decode_action, placeur_encode_action
 from board import Board, GameFinished
 from color import Color
 from paw import Paw
 from reward import calculate_reward
 from stats import Stats
 from writerBuffer import init_writer, WriterBuffer
+import time
+from paw import *
 
 class Game:
     def __init__(self, agent1_path=None, agent2_path=None, num_games=1000, mode="train", model_name=None, **agent_params):
@@ -44,19 +48,47 @@ class Game:
                 network=Network(),
                 **agent_params
             )
-
             self.agent2 = Agent(
                 color=Color.RED,
                 network=Network(),
                 **agent_params
             )
-
+            self.placeur1 = Placeur(
+                color=Color.BLUE,
+                network=Draft_network(),
+                # **placeur_params
+            )
+            self.placeur2 = Placeur(
+                color=Color.RED,
+                network=Draft_network(),
+                # **placeur_params
+            )
             if agent1_path:
                 self.agent1.load_checkpoint(agent1_path)
                 get_logger(__name__).info(f"Loaded Agent 1 from {agent1_path}")
             if agent2_path:
                 self.agent2.load_checkpoint(agent2_path)
                 get_logger(__name__).info(f"Loaded Agent 2 from {agent2_path}")
+
+    def draft(self) -> None:
+        blue_paws = [-1, PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
+        red_paws =  [-1, PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
+        random.shuffle(blue_paws)
+        random.shuffle(red_paws)
+        for turn in range(5):
+            time.sleep(0.5)
+            if blue_paws[turn] != -1:
+                pos = (0, turn)
+                paw = Paw(blue_paws[turn], Color.BLUE, pos)
+                b = self.board.init_paw(paw, pos)
+                print(f"{b} for initialisation of {paw} at {pos}")
+
+            if red_paws[turn] != -1:
+                pos = (4, turn)
+                paw = Paw(red_paws[turn], Color.RED, pos)
+                b = self.board.init_paw(paw, pos)
+                print(f"{b} for initialisation of {paw} at {pos}")
+        self.placeur1.encode_board(self.board)
 
     def train_agents(self, STOP_EVENT) -> None:
         """
@@ -87,7 +119,7 @@ class Game:
                     get_logger(__name__).debug("No valid moves, ending game.")
                     break
                 move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
-                paw_index, destination = decode_action(move_idx)
+                paw_index, destination = agent_decode_action(move_idx)
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
                 agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
                 selected_paw = agent_paws[paw_index]
@@ -119,6 +151,7 @@ class Game:
         Resets the game to its initial state to start a new round.
         """
         self.board = Board()
+        self.draft()
         self.current_turn = Color.BLUE
         self.retreat_activated = False
         self.retreat_position = None

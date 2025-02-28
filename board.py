@@ -18,23 +18,25 @@ class Retreat:
 
 class Board:
     def __init__(self) -> None:
-        paws = [PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER, -1]
         self.paws_coverage: dict[tuple[int, int], list[Paw]] = {}
-        random.shuffle(paws)
-        for i, paw_type in enumerate(paws):
-            if paw_type == -1:
-                continue
-            pos = (0, i)
-            paw = Paw(paw_type, Color.RED, pos)
-            self.paws_coverage[pos] = [paw]
-        random.shuffle(paws)
-        for i, paw_type in enumerate(paws):
-            if paw_type == -1:
-                continue
-            pos = (4, i)
-            paw = Paw(paw_type, Color.BLUE, pos)
-            self.paws_coverage[pos] = [paw]
         self.retreat_status = Retreat()
+
+    def init_paw(self, paw: Paw, start_position: tuple[int, int]) -> bool:
+        """
+        Initialise a paw to a position.
+        Args:
+            paw (Paw): The paw to move.
+            start_position (tuple[int, int]): The start position (row, col) where the row should be
+                either 0 (Blue) or 4 (Red).
+        Returns:
+            bool: False if the start position is invalid, True otherwise.
+        """
+        if not self.is_valid_position(start_position):
+            raise ValueError(f"Invalid start position: {start_position}")
+        if not self.is_valid_start(paw.color, start_position):
+            return False
+        self.paws_coverage[start_position] = [paw]
+        return True
 
     def move_paw(self, paw: Paw, destination: tuple[int, int]) -> bool:
         """
@@ -43,7 +45,7 @@ class Board:
             paw (Paw): The paw to move.
             destination (tuple[int, int]): The new position (row, col).
         Returns:
-            int: 1 if this move leads a retreat, 0 otherwise.
+            bool: False if the move is invalid, True otherwise.
         """
         if not self.is_valid_position(destination):
             raise ValueError(f"Invalid destination: {destination}")
@@ -122,6 +124,22 @@ class Board:
         """
         row, col = position
         return 0 <= row < 5 and 0 <= col < 5
+
+    def is_valid_start(self, color: Color, position: tuple[int, int]) -> bool:
+        """
+        Check if a position is a valid start.
+        The position should be empty.
+        The blue row should be 0 and the red one should be 4.
+        Args:
+            color (Color): The color of the moving paw.
+            position (tuple[int, int]): The position to check (row, col).
+        Returns:
+            bool: True if the start position is valid, False otherwise.
+        """
+        row, col = position
+        empty_position = not (position in self.paws_coverage)
+        match_color_row = (color.value == 0 and row == 0) or (color.value == 1 and row == 4)
+        return empty_position and match_color_row
 
     def find_paw_at(self, position: tuple[int, int]) -> list[Paw]:
         """

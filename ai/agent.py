@@ -185,7 +185,7 @@ class Agent:
     def update_epsilon(self, min_epsilon: float = 0.01, decay_amount: float = 0.001) -> None:
         self.epsilon = max(min_epsilon, self.epsilon - decay_amount)
 
-def encode_action(move: tuple[int, tuple[int, int]]) -> int:
+def agent_encode_action(move: tuple[int, tuple[int, int]]) -> int:
     """
     Convert (paw_index, (row, col)) into a single integer 0..99.
     """
@@ -193,7 +193,7 @@ def encode_action(move: tuple[int, tuple[int, int]]) -> int:
     return paw_index * 25 + row * 5 + col
 
 
-def decode_action(action_idx: int) -> tuple[int, tuple[int, int]]:
+def agent_decode_action(action_idx: int) -> tuple[int, tuple[int, int]]:
     """
     Convert a single integer 0..99 back to (paw_index, (row, col)).
     """
