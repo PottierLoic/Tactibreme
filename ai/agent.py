@@ -127,7 +127,7 @@ class Agent:
         state_tensor = self.encode_board(board, reverse)
         if random.random() < self.epsilon:
             random_move = random.choice(valid_moves)
-            return encode_action(random_move)
+            return agent_encode_action(random_move)
 
         output = self.network(state_tensor).detach().squeeze()
         mask = self.create_mask(valid_moves).to(self.network.device)

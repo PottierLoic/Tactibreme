@@ -35,6 +35,8 @@ class Board:
             raise ValueError(f"Invalid start position: {start_position}")
         if not self.is_valid_start(paw.color, start_position):
             return False
+        if self.is_paw_duplicated(paw):
+            return False
         self.paws_coverage[start_position] = [paw]
         return True
 
@@ -140,6 +142,23 @@ class Board:
         empty_position = not (position in self.paws_coverage)
         match_color_row = (color.value == 0 and row == 0) or (color.value == 1 and row == 4)
         return empty_position and match_color_row
+
+    def is_paw_duplicated(self, paw: Paw) -> bool:
+        """
+        Check if the paw is already on the board
+        Args:
+            paw (Paw): The paw to check.
+        Returns:
+            bool: True if the paw is already on the board, False otherwise.
+        """
+        row = 0 if paw.color == Color.BLUE else 4
+        for col in range (5):
+            position = (row, col)
+            if position in self.paws_coverage:
+                for p in self.paws_coverage[position]:
+                    if p.paw_type == paw.paw_type:
+                        return True
+        return False
 
     def find_paw_at(self, position: tuple[int, int]) -> list[Paw]:
         """

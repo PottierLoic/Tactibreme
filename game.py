@@ -71,23 +71,21 @@ class Game:
                 get_logger(__name__).info(f"Loaded Agent 2 from {agent2_path}")
 
     def draft(self) -> None:
-        blue_paws = [-1, PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
-        red_paws =  [-1, PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
-        random.shuffle(blue_paws)
-        random.shuffle(red_paws)
-        for turn in range(5):
+        blue_paws = [PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
+        red_paws = [PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
+        for turn in range(4):
             time.sleep(0.5)
-            if blue_paws[turn] != -1:
-                pos = (0, turn)
-                paw = Paw(blue_paws[turn], Color.BLUE, pos)
-                b = self.board.init_paw(paw, pos)
-                print(f"{b} for initialisation of {paw} at {pos}")
-
-            if red_paws[turn] != -1:
-                pos = (4, turn)
-                paw = Paw(red_paws[turn], Color.RED, pos)
-                b = self.board.init_paw(paw, pos)
-                print(f"{b} for initialisation of {paw} at {pos}")
+            bb = False
+            while not bb:
+                pos = (0, random.randint(0, 4))
+                paw = Paw(random.choice(blue_paws), Color.BLUE, pos)
+                bb = self.board.init_paw(paw, pos)
+            time.sleep(0.5)
+            br = False
+            while not br:
+                pos = (4, random.randint(0, 4))
+                paw = Paw(random.choice(red_paws), Color.RED, pos)
+                br = self.board.init_paw(paw, pos)
         self.placeur1.encode_board(self.board)
 
     def train_agents(self, STOP_EVENT) -> None:
