@@ -219,6 +219,16 @@ def setup_threads(args, controller):
         ui_thread.start()
         pool.append(ui_thread)
 
+def run_draft(controller):
+    print("Start of the draft !")
+    game = Game(
+        num_games=1,
+        model_name="draft_name"
+    )
+    with lock:
+        controller.game = game
+    game.draft()
+
 def main():
     args = parse_args()
     controller = Context()

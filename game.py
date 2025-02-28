@@ -11,7 +11,9 @@ from color import Color
 from paw import Paw
 from reward import calculate_reward
 from stats import Stats
-from writerBuffer import WriterBuffer
+from writerBuffer import init_writer, WriterBuffer
+import time
+from paw import *
 
 class Game:
     def __init__(self, agent1_path=None, agent2_path=None, num_games=1000, mode="train", model_name=None, **agent_params):
@@ -169,6 +171,7 @@ class Game:
         Resets the game to its initial state to start a new round.
         """
         self.board = Board()
+        self.draft()
         self.current_turn = Color.BLUE
         self.retreat_activated = False
         self.retreat_position = None

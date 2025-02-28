@@ -138,4 +138,3 @@ class AgentBase:
         Subtract decay_amount from epsilon until it reach min_epsilon
         """
         self.epsilon = max(min_epsilon, self.epsilon - decay_amount)
-
