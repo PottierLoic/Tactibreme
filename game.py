@@ -192,7 +192,7 @@ class Game:
         self.writer.set_color(selected_paw.color.value)
         self.writer.set_paw(selected_paw.paw_type.value)
         self.writer.set_dest(destination[0], destination[1])
-        if self.board.move_paw(selected_paw, destination) == 1:
+        if self.board.move_paw(selected_paw, destination, self.writer) == 1:
             get_logger(__name__).debug(f"{self.current_turn} activated the retreat.")
             self.retreat_position = destination
             self.retreat_activated = True

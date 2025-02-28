@@ -2,6 +2,7 @@ import random
 from color import Color
 from paw import Paw, PawType
 from logger import get_logger
+from writerBuffer import WriterBuffer
 
 class GameFinished(Exception):
     def __init__(self, winner_color):
@@ -40,7 +41,7 @@ class Board:
         self.paws_coverage[start_position] = [paw]
         return True
 
-    def move_paw(self, paw: Paw, destination: tuple[int, int]) -> bool:
+    def move_paw(self, paw: Paw, destination: tuple[int, int], writer) -> bool:
         """
         Move a paw to a new position.
         Args:
@@ -61,6 +62,10 @@ class Board:
             for p in paw_at_origin
             if p is paw or p.paw_type.value > paw.paw_type.value
         ]
+        dog_present = any(p.paw_type.value == 1 and p is not paw for p in pawns_to_move)
+        cat_present = any(p.paw_type.value == 2 and p is not paw for p in pawns_to_move)
+        rooster_present = any(p.paw_type.value == 3 and p is not paw for p in pawns_to_move)
+        writer.set_pile(dog_present, cat_present, rooster_present)
         self.paws_coverage[origin_pos] = [
             p for p in paw_at_origin if p not in pawns_to_move
         ]
