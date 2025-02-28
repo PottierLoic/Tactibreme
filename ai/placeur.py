@@ -76,19 +76,19 @@ class Placeur:
         self.network.eval()
         get_logger(__name__).info(f"Model and hyperparameters loaded from {filepath}")
 
-  # def create_mask(self, valid_moves: List[Tuple[int, Tuple[int, int]]]) -> Tensor:
-  #       """
-  #       Create a mask for valid moves.
-  #       Args:
-  #           valid_moves (list): List of valid (paw_index, destination) pairs.
-  #       Returns:
-  #           Tensor: A mask of size 100 with 1 for valid moves, 0 otherwise.
-  #       """
-  #       mask = torch.zeros(20, dtype=torch.float32)
-  #       for paw_index, (row, col) in valid_moves:
-  #           flat_index = paw_index * 25 + row * 5 + col
-  #           mask[flat_index] = 1
-  #       return mask
+  def create_mask(self, valid_moves: List[Tuple[int, Tuple[int, int]]]) -> Tensor:
+        """
+        Create a mask for valid moves.
+        Args:
+            valid_moves (list): List of valid (paw_index, destination) pairs.
+        Returns:
+            Tensor: A mask of size 20 with 1 for valid moves, 0 otherwise.
+        """
+        mask = torch.zeros(20, dtype=torch.float32)
+        for paw_index, (row, col) in valid_moves:
+            flat_index = paw_index * 5 + col
+            mask[flat_index] = 1
+        return mask
 
   def encode_board(self, board: Board, reverse: bool = False) -> Tensor:
         """
@@ -114,93 +114,98 @@ class Placeur:
         print(state)
         return state.unsqueeze(0)
 
-#   def select_action(
-#         self, board: Board, valid_moves: List[Tuple[int, Tuple[int, int]]], reverse: bool = False
-#     ) -> Tuple[int, Tuple[int, int]]:
-#         """
-#         Select an action based on the current policy.
-#         Args:
-#             board (Board): The current board state.
-#             valid_moves (list): List of valid moves (paw_index, destination). # TODO
-#             reverse (bool): If True, rotate the board and swap colors.
-#         Returns:
-#             tuple: Selected (paw_index, destination).
-#         """
-#         state_tensor = self.encode_board(board, reverse)
-#         if random.random() < self.epsilon:
-#             random_move = random.choice(valid_moves)
-#             return encode_action(random_move)
+  def select_action(
+        self, board: Board, valid_moves: List[Tuple[int, Tuple[int, int]]], reverse: bool = False
+    ) -> Tuple[int, Tuple[int, int]]:
+        """
+        Select an action based on the current policy.
+        Args:
+            board (Board): The current board state.
+            valid_moves (list): List of valid moves (paw_index, destination). # TODO
+            reverse (bool): If True, rotate the board and swap colors.
+        Returns:
+            tuple: Selected (paw_index, destination).
+        """
+        state_tensor = self.encode_board(board, reverse)
+        if random.random() < self.epsilon:
+            random_move = random.choice(valid_moves)
+            return placeur_encode_action(random_move)
 
-#         output = self.network(state_tensor).detach().squeeze()
-#         mask = self.create_mask(valid_moves).to(self.network.device)
-#         masked_output = output * mask
-#         masked_output[mask == 0] = -float("inf")
-#         best_move_index = torch.argmax(masked_output).item()
-#         return best_move_index
+        output = self.network(state_tensor).detach().squeeze()
+        mask = self.create_mask(valid_moves).to(self.network.device)
+        masked_output = output * mask
+        masked_output[mask == 0] = -float("inf")
+        best_move_index = torch.argmax(masked_output).item()
+        return best_move_index
 
-#   def store_transition(
-#         self, state: Tensor, action: int, reward: float, next_state: Tensor, done: bool
-#     ) -> None:
-#         """
-#         Store a transition in the replay buffer.
-#         Args:
-#             state (Tensor): Current state.
-#             action (int): Action taken.
-#             reward (float): Reward received.
-#             next_state (Tensor): Next state.
-#             done (bool): Whether the game is over.
-#         """
-#         self.memory.append((state, action, reward, next_state, done))
+  def store_transition(
+        self, state: Tensor, action: int, reward: float, next_state: Tensor, done: bool
+    ) -> None:
+        """
+        Store a transition in the replay buffer.
+        Args:
+            state (Tensor): Current state.
+            action (int): Action taken.
+            reward (float): Reward received.
+            next_state (Tensor): Next state.
+            done (bool): Whether the game is over.
+        """
+        self.memory.append((state, action, reward, next_state, done))
 
-#   def train(self, batch_size: int = 32) -> None:
-#         """
-#         Train the network using experience replay.
-#         Args:
-#             batch_size (int): Number of transitions to sample from the replay buffer.
-#         """
-#         if len(self.memory) < batch_size:
-#             return
+  def train(self, batch_size: int = 32) -> None:
+        """
+        Train the network using experience replay.
+        Args:
+            batch_size (int): Number of transitions to sample from the replay buffer.
+        """
+        if len(self.memory) < batch_size:
+            return
 
-#         batch = random.sample(self.memory, batch_size)
-#         states, actions, rewards, next_states, dones = zip(*batch)
+        batch = random.sample(self.memory, batch_size)
+        states, actions, rewards, next_states, dones = zip(*batch)
 
-#         device = self.network.device
+        device = self.network.device
 
-#         states = torch.cat(states).to(device)
-#         actions = torch.tensor(actions, dtype=torch.long, device=device)
-#         rewards = torch.tensor(rewards, dtype=torch.float32, device=device)
-#         next_states = torch.cat(next_states).to(device)
-#         dones = torch.tensor(dones, dtype=torch.float32, device=device)
+        states = torch.cat(states).to(device)
+        actions = torch.tensor(actions, dtype=torch.long, device=device)
+        rewards = torch.tensor(rewards, dtype=torch.float32, device=device)
+        next_states = torch.cat(next_states).to(device)
+        dones = torch.tensor(dones, dtype=torch.float32, device=device)
 
-#         q_values = self.network(states)
-#         q_values = q_values.gather(1, actions.unsqueeze(-1)).squeeze()
+        q_values = self.network(states)
+        q_values = q_values.gather(1, actions.unsqueeze(-1)).squeeze()
 
-#         next_q_values = self.network(next_states).max(1)[0]
-#         targets = rewards + self.gamma * next_q_values * (1 - dones)
+        next_q_values = self.network(next_states).max(1)[0]
+        targets = rewards + self.gamma * next_q_values * (1 - dones)
 
-#         loss = self.criterion(q_values, targets)
-#         self.optimizer.zero_grad()
-#         loss.backward()
-#         self.optimizer.step()
-#         self.update_epsilon()
+        loss = self.criterion(q_values, targets)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        self.update_epsilon()
 
-#   def update_epsilon(self, min_epsilon: float = 0.01, decay_amount: float = 0.001) -> None:
-#         self.epsilon = max(min_epsilon, self.epsilon - decay_amount)
+  def update_epsilon(self, min_epsilon: float = 0.01, decay_amount: float = 0.001) -> None:
+        self.epsilon = max(min_epsilon, self.epsilon - decay_amount)
 
-# def placeur_encode_action(move: tuple[int, tuple[int, int]]) -> int:
-#     """
-#     Convert (paw_index, (row, col)) into a single integer 0..99.
-#     """
-#     paw_index, (row, col) = move
-#     return paw_index * 25 + row * 5 + col
+def placeur_encode_action(move: tuple[int, tuple[int, int]]) -> int:
+    """
+    Convert (paw_index, (row, col)) into a single integer 0..20.
+    """
+    paw_index, (row, col) = move
+    print(f"encoded action paw:{paw_index}, row:{row}, col:{col} == {paw_index * 5 + col}")
+    return paw_index * 5 + col
+# 5 cases possible
+# 4 pieces possible
+#  output size : 5 * 4 = 20
+# row tj a 0
 
-
-# def placeur_decode_action(action_idx: int) -> tuple[int, tuple[int, int]]:
-#     """
-#     Convert a single integer 0..99 back to (paw_index, (row, col)).
-#     """
-#     paw_index = action_idx // 25
-#     destination_index = action_idx % 25
-#     row = destination_index // 5
-#     col = destination_index % 5
-#     return paw_index, (row, col)
+def placeur_decode_action(action_idx: int) -> tuple[int, tuple[int, int]]:
+    """
+    Convert a single integer 0..20 back to (paw_index, (row, col)).
+    """
+    paw_index = action_idx // 5
+    destination_index = action_idx % 5
+    row = 0
+    col = destination_index % 5
+    print(f"decoded action {action_idx} == paw:{paw_index}, row:{row}, col:{col}")
+    return paw_index, (row, col)
