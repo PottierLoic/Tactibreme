@@ -196,6 +196,7 @@ class Game:
             get_logger(__name__).debug(f"{self.current_turn} activated the retreat.")
             self.retreat_position = destination
             self.retreat_activated = True
+            self.writer.set_retreat_cause(1)
         if self.board.check_win(destination):
             get_logger(__name__).debug(f"The winner is {selected_paw.color}!")
             return 1

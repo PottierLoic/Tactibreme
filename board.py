@@ -52,7 +52,7 @@ class Board:
         if not self.is_valid_position(destination):
             raise ValueError(f"Invalid destination: {destination}")
         if destination not in self.possible_movements(paw):
-            return False  # TODO see if the return is good like this
+            return False
         self.retreat_status.is_activated = False
         origin_pos = paw.position
         paw_at_origin = self.find_paw_at(origin_pos)
@@ -82,7 +82,8 @@ class Board:
             self.retreat_status.paw_to_move = self.get_biggest_paw(
                 self.other_color(paw.color), self.paws_coverage[destination]
             )
-        return True  # TODO see if the return is god like this
+            return True
+        return False
 
     def other_color(self, color: Color) -> Color:
         return Color((color.value + 1) % 2)
