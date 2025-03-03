@@ -15,7 +15,7 @@ class Draft_network(nn.Module):
         )
         self.fc_layers = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(board_size[0] * board_size[1] * 64, 128),
+            nn.Linear(board_size[0] * board_size[1] * 32, 128),
             nn.ReLU(),
             nn.Linear(128, 20),
         )
