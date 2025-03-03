@@ -228,7 +228,7 @@ def run_draft(controller):
     )
     with lock:
         controller.game = game
-    game.draft()
+    game.draft(STOP_EVENT)
 
 def main():
     args = parse_args()

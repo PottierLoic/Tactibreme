@@ -5,7 +5,7 @@ from logger import get_logger
 from ai.agent import Agent, agent_decode_action, agent_encode_action
 from ai.network import Network
 from ai.draft_network import Draft_network
-from ai.placeur import Placeur#, placeur_decode_action, placeur_encode_action
+from ai.placeur import Placeur, placeur_decode_action, placeur_encode_action
 from board import Board, GameFinished
 from color import Color
 from paw import Paw
@@ -70,22 +70,43 @@ class Game:
                 self.agent2.load_checkpoint(agent2_path)
                 get_logger(__name__).info(f"Loaded Agent 2 from {agent2_path}")
 
-    def draft(self) -> None:
-        blue_paws = [PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
-        red_paws = [PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
+    def draft(self, STOP_EVENT) -> None:
+        paws = [PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
         for turn in range(4):
-            time.sleep(0.5)
-            bb = False
-            while not bb:
-                pos = (0, random.randint(0, 4))
-                paw = Paw(random.choice(blue_paws), Color.BLUE, pos)
-                bb = self.board.init_paw(paw, pos)
-            time.sleep(0.5)
-            br = False
-            while not br:
-                pos = (4, random.randint(0, 4))
-                paw = Paw(random.choice(red_paws), Color.RED, pos)
-                br = self.board.init_paw(paw, pos)
+            if STOP_EVENT.is_set():
+                STOP_EVENT.set()
+                get_logger(__name__).info("Draft aborted")
+                return
+
+            is_move_valid = False
+            is_red_turn = turn % 2 ==0
+            placeur = self.placeur1 if is_red_turn else self.placeur2
+            state_tensor = placeur.encode_board(self.board, reverse=(is_red_turn))
+            while not is_move_valid:
+                move_idx = placeur.select_action(self.board, [], reverse=(is_red_turn)) # pourquoi on donne board et pas le tenseur ?
+                paw_idx, pos = placeur_decode_action(move_idx)
+                print(paw_idx)
+
+                # all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list] # pas tres pratique
+                # placeur_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
+                # selected_paw = placeur_paws[paw_idx]
+
+                paw = Paw(PawType(paw_idx), self.placeur1.color, pos)
+                is_valid_move = self.board.init_paw(paw, pos)
+                print(f"Le move choisi est {paw_idx} à la position {pos}\t\t\t[{is_valid_move}].")
+
+            # time.sleep(0.5)
+            # bb = False
+            # while not bb:
+            #     pos = (0, random.randint(0, 4))
+            #     paw = Paw(random.choice(paws), Color.BLUE, pos)
+            #     bb = self.board.init_paw(paw, pos)
+            # time.sleep(0.5)
+            # br = False
+            # while not br:
+            #     pos = (4, random.randint(0, 4))
+            #     paw = Paw(random.choice(paws), Color.RED, pos)
+            #     br = self.board.init_paw(paw, pos)
         self.placeur1.encode_board(self.board)
 
     def train_agents(self, STOP_EVENT) -> None:
@@ -106,16 +127,16 @@ class Game:
             game_finished = False
             while (not game_finished) and (not STOP_EVENT.is_set()):
                 agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
-                if agent == self.agent1:
-                    self.writer.set_agent(0)
-                else:
-                    self.writer.set_agent(1)
-                self.writer.set_epsilon(agent.epsilon)
+                # if agent == self.agent1:
+                #     self.writer.set_agent(0)
+                # else:
+                #     self.writer.set_agent(1)
+                # self.writer.set_epsilon(agent.epsilon)
                 state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
-                valid_moves = self.get_valid_moves(self.current_turn)
-                if not valid_moves:
-                    get_logger(__name__).debug("No valid moves, ending game.")
-                    break
+                # valid_moves = self.get_valid_moves(self.current_turn)
+                # if not valid_moves:
+                #     get_logger(__name__).debug("No valid moves, ending game.")
+                #     break
                 move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
                 paw_index, destination = agent_decode_action(move_idx)
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
@@ -123,11 +144,11 @@ class Game:
                 selected_paw = agent_paws[paw_index]
 
                 reward = calculate_reward(self.board, (paw_index, destination), self.current_turn)
-                self.writer.set_reward(reward)
+                # self.writer.set_reward(reward)
                 m = self.process_move(selected_paw, destination)
-                self.writer.set_win(m)
-                self.writer.push()
-                self.writer.reset_line()
+                # self.writer.set_win(m)
+                # self.writer.push()
+                # self.writer.reset_line()
                 if (m == 1):
                     game_finished = True
                 next_state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))

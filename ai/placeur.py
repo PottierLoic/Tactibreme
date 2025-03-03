@@ -76,19 +76,19 @@ class Placeur:
         self.network.eval()
         get_logger(__name__).info(f"Model and hyperparameters loaded from {filepath}")
 
-  def create_mask(self, valid_moves: List[Tuple[int, Tuple[int, int]]]) -> Tensor:
-        """
-        Create a mask for valid moves.
-        Args:
-            valid_moves (list): List of valid (paw_index, destination) pairs.
-        Returns:
-            Tensor: A mask of size 20 with 1 for valid moves, 0 otherwise.
-        """
-        mask = torch.zeros(20, dtype=torch.float32)
-        for paw_index, (row, col) in valid_moves:
-            flat_index = paw_index * 5 + col
-            mask[flat_index] = 1
-        return mask
+  # def create_mask(self, valid_moves: List[Tuple[int, Tuple[int, int]]]) -> Tensor:
+  #       """
+  #       Create a mask for valid moves.
+  #       Args:
+  #           valid_moves (list): List of valid (paw_index, destination) pairs.
+  #       Returns:
+  #           Tensor: A mask of size 20 with 1 for valid moves, 0 otherwise.
+  #       """
+  #       mask = torch.zeros(20, dtype=torch.float32)
+  #       for paw_index, (row, col) in valid_moves:
+  #           flat_index = paw_index * 5 + col
+  #           mask[flat_index] = 1
+  #       return mask
 
   def encode_board(self, board: Board, reverse: bool = False) -> Tensor:
         """
@@ -128,14 +128,16 @@ class Placeur:
         """
         state_tensor = self.encode_board(board, reverse)
         if random.random() < self.epsilon:
-            random_move = random.choice(valid_moves)
-            return placeur_encode_action(random_move)
+            rand_paw = random.randint(0, 3)
+            rand_dest = (random.randint(0, 4), random.randint(0, 4))
+            # random_move = random.choice(valid_moves)
+            return placeur_encode_action((rand_paw, rand_dest))
 
         output = self.network(state_tensor).detach().squeeze()
-        mask = self.create_mask(valid_moves).to(self.network.device)
-        masked_output = output * mask
-        masked_output[mask == 0] = -float("inf")
-        best_move_index = torch.argmax(masked_output).item()
+        # mask = self.create_mask(valid_moves).to(self.network.device)
+        # masked_output = output * mask
+        # masked_output[mask == 0] = -float("inf")
+        best_move_index = torch.argmax(output).item()
         return best_move_index
 
   def store_transition(
@@ -192,7 +194,7 @@ def placeur_encode_action(move: tuple[int, tuple[int, int]]) -> int:
     Convert (paw_index, (row, col)) into a single integer 0..20.
     """
     paw_index, (row, col) = move
-    print(f"encoded action paw:{paw_index}, row:{row}, col:{col} == {paw_index * 5 + col}")
+    # print(f"encoded action paw:{paw_index}, row:{row}, col:{col} == {paw_index * 5 + col}")
     return paw_index * 5 + col
 # 5 cases possible
 # 4 pieces possible
@@ -204,8 +206,7 @@ def placeur_decode_action(action_idx: int) -> tuple[int, tuple[int, int]]:
     Convert a single integer 0..20 back to (paw_index, (row, col)).
     """
     paw_index = action_idx // 5
-    destination_index = action_idx % 5
     row = 0
-    col = destination_index % 5
-    print(f"decoded action {action_idx} == paw:{paw_index}, row:{row}, col:{col}")
+    col = action_idx % 5
+    # print(f"decoded action {action_idx} == paw:{paw_index}, row:{row}, col:{col}")
     return paw_index, (row, col)
