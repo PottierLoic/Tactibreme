@@ -1,3 +1,4 @@
 pygame
 tqdm
 torch
+pyinstaller
