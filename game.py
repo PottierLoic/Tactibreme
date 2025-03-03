@@ -116,10 +116,10 @@ class Game:
             while (not game_finished) and (not STOP_EVENT.is_set()):
                 agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
                 state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
-                # valid_moves = self.get_valid_moves(self.current_turn)
-                # if not valid_moves:
-                #     get_logger(__name__).debug("No valid moves, ending game.")
-                #     break
+                valid_moves = self.get_valid_moves(self.current_turn)
+                if not valid_moves:
+                    get_logger(__name__).debug("No valid moves, ending game.")
+                    break
                 move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
                 paw_index, destination = agent_decode_action(move_idx)
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
@@ -171,7 +171,6 @@ class Game:
         Resets the game to its initial state to start a new round.
         """
         self.board = Board()
-        self.draft()
         self.current_turn = Color.BLUE
         self.retreat_activated = False
         self.retreat_position = None
