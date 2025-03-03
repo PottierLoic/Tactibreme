@@ -220,26 +220,25 @@ def setup_threads(args, controller):
         ui_thread.start()
         pool.append(ui_thread)
 
-def run_draft(controller):
-    print("Start of the draft !")
-    game = Game(
-        num_games=1,
-        model_name="draft_name"
-    )
-    with lock:
-        controller.game = game
-    game.draft(STOP_EVENT)
+# def run_draft(controller):
+#     print("Start of the draft !")
+#     game = Game(
+#         num_games=1,
+#         model_name="draft_name"
+#     )
+#     with lock:
+#         controller.game = game
+#     game.draft(STOP_EVENT)
 
 def main():
     args = parse_args()
     controller = Context()
     setup_threads(args, controller)
-    run_draft(controller)
-    # command_map = {
-    #     "train": run_training,
-    #     "record": run_record,
-    # }
-    # command_map[args.command](args, controller)
+    command_map = {
+        "train": run_training,
+        "record": run_record,
+    }
+    command_map[args.command](args, controller)
     for thread in pool:
         thread.join()
 

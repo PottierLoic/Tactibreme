@@ -131,7 +131,7 @@ class Board:
         """
         Check if a position is a valid start.
         The position should be empty.
-        The blue row should be 0 and the red one should be 4.
+        The blue row should be 4 and the red one should be 0.
         Args:
             color (Color): The color of the moving paw.
             position (tuple[int, int]): The position to check (row, col).
@@ -140,7 +140,7 @@ class Board:
         """
         row, col = position
         empty_position = not (position in self.paws_coverage)
-        match_color_row = (color.value == 0 and row == 0) or (color.value == 1 and row == 4)
+        match_color_row = (color.value == 0 and row == 4) or (color.value == 1 and row == 0)
         return empty_position and match_color_row
 
     def is_paw_duplicated(self, paw: Paw) -> bool:
@@ -151,7 +151,7 @@ class Board:
         Returns:
             bool: True if the paw is already on the board, False otherwise.
         """
-        row = 0 if paw.color == Color.BLUE else 4
+        row = 4 if paw.color == Color.BLUE else 0
         for col in range (5):
             position = (row, col)
             if position in self.paws_coverage:

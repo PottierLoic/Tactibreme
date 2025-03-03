@@ -105,13 +105,11 @@ class Placeur:
             if row != 0 and row != 4:
               continue
             if reverse:
-                row = 4 - row
                 col = 4 - col
             for paw in paws:
                 idx = paw.paw_type.value
-                row = row - 3 if paw.color == Color.RED else 0
+                row = 0 if paw.color == Color.RED else 1
                 state[idx, row, col] = 1
-        print(state)
         return state.unsqueeze(0)
 
   def select_action(
@@ -129,7 +127,7 @@ class Placeur:
         state_tensor = self.encode_board(board, reverse)
         if random.random() < self.epsilon:
             rand_paw = random.randint(0, 3)
-            rand_dest = (random.randint(0, 4), random.randint(0, 4))
+            rand_dest = (0 if reverse else 4, random.randint(0, 4))
             # random_move = random.choice(valid_moves)
             return placeur_encode_action((rand_paw, rand_dest))
 
@@ -186,7 +184,7 @@ class Placeur:
         self.optimizer.step()
         self.update_epsilon()
 
-  def update_epsilon(self, min_epsilon: float = 0.01, decay_amount: float = 0.001) -> None:
+  def update_epsilon(self, min_epsilon: float = 0.01, decay_amount: float = 0.05) -> None:
         self.epsilon = max(min_epsilon, self.epsilon - decay_amount)
 
 def placeur_encode_action(move: tuple[int, tuple[int, int]]) -> int:

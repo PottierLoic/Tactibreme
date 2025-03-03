@@ -41,6 +41,7 @@ class Game:
         self.mode = mode
         self.model_name = model_name
         self.stats = Stats()
+        self.placeur_buffer : dict[Color, old] = {} # Color -> [(tensor_t0, move_idx, is_valid, tensor_t1)]
 
         if mode in ["train", "ai_vs_ai"]:
             self.agent1 = Agent(
@@ -71,43 +72,32 @@ class Game:
                 get_logger(__name__).info(f"Loaded Agent 2 from {agent2_path}")
 
     def draft(self, STOP_EVENT) -> None:
-        paws = [PawType.DONKEY, PawType.DOG, PawType.CAT, PawType.ROOSTER]
-        for turn in range(4):
+        self.placeur_buffer[Color.BLUE] = []
+        self.placeur_buffer[Color.RED] = []
+        for turn in range(8):
             if STOP_EVENT.is_set():
                 STOP_EVENT.set()
                 get_logger(__name__).info("Draft aborted")
                 return
-
             is_move_valid = False
-            is_red_turn = turn % 2 ==0
-            placeur = self.placeur1 if is_red_turn else self.placeur2
+            is_red_turn = turn % 2 == 1
+            placeur = self.placeur1 if not is_red_turn else self.placeur2
             state_tensor = placeur.encode_board(self.board, reverse=(is_red_turn))
             while not is_move_valid:
                 move_idx = placeur.select_action(self.board, [], reverse=(is_red_turn)) # pourquoi on donne board et pas le tenseur ?
                 paw_idx, pos = placeur_decode_action(move_idx)
-                print(paw_idx)
-
-                # all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list] # pas tres pratique
-                # placeur_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
-                # selected_paw = placeur_paws[paw_idx]
-
-                paw = Paw(PawType(paw_idx), self.placeur1.color, pos)
-                is_valid_move = self.board.init_paw(paw, pos)
-                print(f"Le move choisi est {paw_idx} à la position {pos}\t\t\t[{is_valid_move}].")
-
-            # time.sleep(0.5)
-            # bb = False
-            # while not bb:
-            #     pos = (0, random.randint(0, 4))
-            #     paw = Paw(random.choice(paws), Color.BLUE, pos)
-            #     bb = self.board.init_paw(paw, pos)
-            # time.sleep(0.5)
-            # br = False
-            # while not br:
-            #     pos = (4, random.randint(0, 4))
-            #     paw = Paw(random.choice(paws), Color.RED, pos)
-            #     br = self.board.init_paw(paw, pos)
+                row, col = pos
+                row = 0 if is_red_turn else 4
+                pos = (row, col)
+                paw = Paw(PawType(paw_idx), placeur.color, pos)
+                is_move_valid = self.board.init_paw(paw, pos)
+                next_state_tensor = placeur.encode_board(self.board, reverse=(is_red_turn))
+                self.placeur_buffer[placeur.color].append((state_tensor, move_idx, is_move_valid, next_state_tensor))
+                # reward = 5 if is_move_valid else -10
+                # placeur.store_transition(state_tensor, move_idx, reward, next_state_tensor, done=False)
+                # placeur.train(batch_size=32)
         self.placeur1.encode_board(self.board)
+        return
 
     def train_agents(self, STOP_EVENT) -> None:
         """
@@ -123,20 +113,20 @@ class Game:
         progress_bar = tqdm(range(self.num_games), desc="Training Games", unit="game", dynamic_ncols=True)
         for _ in range(self.num_games):
             self.reset_game()
-            self.current_turn = random.choice([Color.BLUE, Color.RED])
+            self.draft(STOP_EVENT)
             game_finished = False
             while (not game_finished) and (not STOP_EVENT.is_set()):
                 agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
-                # if agent == self.agent1:
-                #     self.writer.set_agent(0)
-                # else:
-                #     self.writer.set_agent(1)
-                # self.writer.set_epsilon(agent.epsilon)
+                if agent == self.agent1:
+                    self.writer.set_agent(0)
+                else:
+                    self.writer.set_agent(1)
+                self.writer.set_epsilon(agent.epsilon)
                 state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
-                # valid_moves = self.get_valid_moves(self.current_turn)
-                # if not valid_moves:
-                #     get_logger(__name__).debug("No valid moves, ending game.")
-                #     break
+                valid_moves = self.get_valid_moves(self.current_turn)
+                if not valid_moves:
+                    get_logger(__name__).debug("No valid moves, ending game.")
+                    break
                 move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
                 paw_index, destination = agent_decode_action(move_idx)
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
@@ -144,12 +134,26 @@ class Game:
                 selected_paw = agent_paws[paw_index]
 
                 reward = calculate_reward(self.board, (paw_index, destination), self.current_turn)
-                # self.writer.set_reward(reward)
+                self.writer.set_reward(reward)
                 m = self.process_move(selected_paw, destination)
-                # self.writer.set_win(m)
-                # self.writer.push()
-                # self.writer.reset_line()
+                self.writer.set_win(m)
+                self.writer.push()
+                self.writer.reset_line()
                 if (m == 1):
+                    for color in self.placeur_buffer:
+                        placeur = self.placeur1 if color == self.placeur1.color else self.placeur2
+                        for tensor_t0, move_idx, is_valid, tensor_t1 in self.placeur_buffer[color]:
+                            reward = 0
+                            if is_valid:
+                                if color == self.current_turn:
+                                    reward = 100
+                                else:
+                                    reward = -100
+                            else:
+                                reward = -5
+                            reward = 100 if color == self.current_turn and is_valid else -10
+                            placeur.store_transition(state_tensor, move_idx, reward, next_state_tensor, done=False)
+                            placeur.train()
                     game_finished = True
                 next_state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
                 agent.store_transition(state_tensor, move_idx, reward, next_state_tensor, done=False)
@@ -170,7 +174,6 @@ class Game:
         Resets the game to its initial state to start a new round.
         """
         self.board = Board()
-        self.draft()
         self.current_turn = Color.BLUE
         self.retreat_activated = False
         self.retreat_position = None
@@ -241,6 +244,7 @@ class Game:
             if STOP_EVENT.is_set():
                 break
             self.reset_game()
+            self.draft(STOP_EVENT)
             self.current_turn = random.choice([Color.BLUE, Color.RED])
             game_finished = False
             while not game_finished and not STOP_EVENT.is_set():
