@@ -133,7 +133,7 @@ class AgentBase:
         self.optimizer.step()
         self.update_epsilon()
 
-    def update_epsilon(self, min_epsilon: float = 0.01, decay_amount: float = 0.001) -> None:
+    def update_epsilon(self, min_epsilon: float = 0, decay_amount: float = 0.001) -> None:
         """
         Subtract decay_amount from epsilon until it reach min_epsilon
         """
