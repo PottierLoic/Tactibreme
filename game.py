@@ -152,8 +152,8 @@ class Game:
                             else:
                                 reward = -5
                             reward = 100 if color == self.current_turn and is_valid else -10
-                            placeur.store_transition(state_tensor, move_idx, reward, next_state_tensor, done=False)
                             placeur.train()
+                            placeur.store_transition(tensor_t0, move_idx, reward, tensor_t1, done=False)
                     game_finished = True
                 next_state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
                 agent.store_transition(state_tensor, move_idx, reward, next_state_tensor, done=False)
