@@ -43,7 +43,7 @@ jobs:
           pyi-makespec --onefile --noconsole --hidden-import=argparse main.py
 
       - name: Edit spec file to exclude heavy modules
-        run: python edit_spec.py
+        run: python .github/workflow/edit_specs.py
 
       - name: Build executable with edited spec
         timeout-minutes: 60
