@@ -43,14 +43,7 @@ jobs:
           pyi-makespec --onefile --noconsole --hidden-import=argparse main.py
 
       - name: Edit spec file to exclude heavy modules
-        run: |
-          python -c "
-          with open('main.spec', 'r') as f:
-              content = f.read()
-          content = content.replace('excludes=[]', 'excludes=[\"torch\", \"tensorflow\", \"triton\"]')
-          with open('main.spec', 'w') as f:
-              f.write(content)
-          "
+        run: python edit_spec.py
 
       - name: Build executable with edited spec
         timeout-minutes: 60
