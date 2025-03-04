@@ -3,14 +3,13 @@ os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 import argparse
 import threading
-
 import pygame
-
 from board import GameFinished
 from constants import *
 from game import Game
 from logger import get_logger
 from paw import Paw
+import sys
 
 lock = threading.Lock()
 STOP_EVENT = threading.Event()
@@ -167,7 +166,7 @@ def run_training(args, controller):
     with lock:
         controller.game = game
     game.train_agents(STOP_EVENT)
-
+    STOP_EVENT.set()
 
 def run_ui(controller):
     """Runs the pygame UI"""
@@ -189,12 +188,12 @@ def run_ui(controller):
 
     pygame.quit()
 
-def input_stop():
-    while not STOP_EVENT.is_set():
-        cmd = input().strip().lower()
-        if cmd == "q":
-            print("Warning: Training aborted, current game not recorded.")
-            STOP_EVENT.set()
+# def input_stop():
+#     while not STOP_EVENT.is_set():
+#         cmd = input().strip().lower()
+#         if cmd == "q":
+#             print("Warning: Training aborted, current game not recorded.")
+#             STOP_EVENT.set()
 
 def run_record(args, controller):
     """Runs AI vs AI matches while UI runs on main thread"""
@@ -212,23 +211,13 @@ def run_record(args, controller):
     game.record_games(STOP_EVENT)
 
 def setup_threads(args, controller):
-    input_thread = threading.Thread(target=input_stop)
-    input_thread.start()
-    pool.append(input_thread)
+    # input_thread = threading.Thread(target=input_stop)
+    # input_thread.start()
+    # pool.append(input_thread)
     if args.ui:
         ui_thread = threading.Thread(target=run_ui, args=(controller,))
         ui_thread.start()
         pool.append(ui_thread)
-
-# def run_draft(controller):
-#     print("Start of the draft !")
-#     game = Game(
-#         num_games=1,
-#         model_name="draft_name"
-#     )
-#     with lock:
-#         controller.game = game
-#     game.draft(STOP_EVENT)
 
 def main():
     args = parse_args()
@@ -239,8 +228,10 @@ def main():
         "record": run_record,
     }
     command_map[args.command](args, controller)
+    STOP_EVENT.set()
     for thread in pool:
         thread.join()
+    sys.exit()
 
 if __name__ == "__main__":
     main()
