@@ -12,7 +12,6 @@ from paw import Paw
 from reward import calculate_reward
 from stats import Stats
 from writerBuffer import init_writer, WriterBuffer
-import time
 from paw import *
 
 class Game:
