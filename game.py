@@ -2,16 +2,16 @@ import random
 from tqdm import tqdm
 from enum import Enum
 from logger import get_logger
-from ai.game_agent import GameAgent, decode_action, encode_action
+from ai.game_agent import GameAgent, game_decode_action, game_encode_action
 from ai.network import Network
 from ai.draft_network import Draft_network
-from ai.draft_agent import DraftAgent, draft_agent_decode_action, draft_agent_encode_action
+from ai.draft_agent import DraftAgent, draft_decode_action, draft_encode_action
 from board import Board, GameFinished
 from color import Color
 from paw import Paw
 from reward import calculate_reward
 from stats import Stats
-from writerBuffer import init_writer, WriterBuffer
+from writerBuffer import WriterBuffer
 from paw import *
 
 class Game:
@@ -82,8 +82,8 @@ class Game:
             draft_agent = self.draft_agent1 if not is_red_turn else self.draft_agent2
             state_tensor = draft_agent.encode_board(self.board, reverse=(is_red_turn))
             while not is_move_valid:
-                move_idx = draft_agent.select_action(self.board, [], reverse=(is_red_turn)) # pourquoi on donne board et pas le tenseur ?
-                paw_idx, pos = draft_agent_decode_action(move_idx)
+                move_idx = draft_agent.select_action(self.board, [], reverse=(is_red_turn))
+                paw_idx, pos = draft_decode_action(move_idx)
                 row, col = pos
                 row = 0 if is_red_turn else 4
                 pos = (row, col)
@@ -120,7 +120,7 @@ class Game:
                     get_logger(__name__).debug("No valid moves, ending game.")
                     break
                 move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
-                paw_index, destination = agent_decode_action(move_idx)
+                paw_index, destination = game_decode_action(move_idx)
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
                 agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
                 selected_paw = agent_paws[paw_index]
@@ -248,7 +248,7 @@ class Game:
                     get_logger(__name__).debug("No valid moves, ending game.")
                     break
                 move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
-                paw_index, destination = agent_decode_action(move_idx)
+                paw_index, destination = game_decode_action(move_idx)
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
                 agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
                 selected_paw = agent_paws[paw_index]

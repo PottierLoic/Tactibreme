@@ -70,7 +70,7 @@ class GameAgent(AgentBase):
         state_tensor = self.encode_board(board, reverse)
         if random.random() < self.epsilon:
             random_move = random.choice(valid_moves)
-            return encode_action(random_move)
+            return game_encode_action(random_move)
 
         output = self.network(state_tensor).detach().squeeze()
         mask = self.create_mask(valid_moves).to(self.network.device)
@@ -79,7 +79,7 @@ class GameAgent(AgentBase):
         best_move_index = torch.argmax(masked_output).item()
         return best_move_index
 
-def encode_action(move: tuple[int, tuple[int, int]]) -> int:
+def game_encode_action(move: tuple[int, tuple[int, int]]) -> int:
     """
     Convert (paw_index, (row, col)) into a single integer 0..99.
     """
@@ -87,7 +87,7 @@ def encode_action(move: tuple[int, tuple[int, int]]) -> int:
     return paw_index * 25 + row * 5 + col
 
 
-def decode_action(action_idx: int) -> tuple[int, tuple[int, int]]:
+def game_decode_action(action_idx: int) -> tuple[int, tuple[int, int]]:
     """
     Convert a single integer 0..99 back to (paw_index, (row, col)).
     """

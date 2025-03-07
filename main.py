@@ -188,19 +188,13 @@ def run_ui(controller):
 
     pygame.quit()
 
-# def input_stop():
-#     while not STOP_EVENT.is_set():
-#         cmd = input().strip().lower()
-#         if cmd == "q":
-#             print("Warning: Training aborted, current game not recorded.")
-#             STOP_EVENT.set()
-
 def run_record(args, controller):
     """Runs AI vs AI matches while UI runs on main thread"""
     game = Game(
         agent1_path=args.blue,
         agent2_path=args.red,
         num_games=args.count,
+        model_name="",
         mode="ai_vs_ai"
     )
     get_logger(__name__).info(
@@ -211,9 +205,6 @@ def run_record(args, controller):
     game.record_games(STOP_EVENT)
 
 def setup_threads(args, controller):
-    # input_thread = threading.Thread(target=input_stop)
-    # input_thread.start()
-    # pool.append(input_thread)
     if args.ui:
         ui_thread = threading.Thread(target=run_ui, args=(controller,))
         ui_thread.start()

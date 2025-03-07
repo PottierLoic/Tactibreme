@@ -2,7 +2,7 @@ import csv
 import os
 
 class WriterBuffer:
-    def __init__(self, mode, game_amount, model_name):
+    def __init__(self, mode, game_amount, model_name=""):
         os.makedirs('csv', exist_ok=True)
         csvfile = open("csv/{}_rec_{}_{}.csv".format(mode, game_amount, model_name), 'w', newline='')
         self.writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)

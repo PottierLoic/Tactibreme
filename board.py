@@ -16,7 +16,6 @@ class Retreat:
         self.activator_color = None
         self.paw_to_move = None
 
-
 class Board:
     def __init__(self) -> None:
         self.paws_coverage: dict[tuple[int, int], list[Paw]] = {}
