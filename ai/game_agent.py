@@ -86,7 +86,6 @@ def game_encode_action(move: tuple[int, tuple[int, int]]) -> int:
     paw_index, (row, col) = move
     return paw_index * 25 + row * 5 + col
 
-
 def game_decode_action(action_idx: int) -> tuple[int, tuple[int, int]]:
     """
     Convert a single integer 0..99 back to (paw_index, (row, col)).
