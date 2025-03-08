@@ -82,20 +82,20 @@ class DraftAgent(AgentBase):
             rand_paw = random.randint(0, 3)
             rand_dest = (0 if reverse else 4, random.randint(0, 4))
             # random_move = random.choice(valid_moves)
-            return draft_encode_action((rand_paw, rand_dest))
+            return self.encode_action((rand_paw, rand_dest))
 
         output = self.network(state_tensor).detach().squeeze()
         best_move_index = torch.argmax(output).item()
         return best_move_index
 
-def draft_encode_action(move: tuple[int, tuple[int, int]]) -> int:
+  def encode_action(self, move: tuple[int, tuple[int, int]]) -> int:
     """
     Convert (paw_index, (row, col)) into a single integer 0..20.
     """
     paw_index, (row, col) = move
     return paw_index * 5 + col
 
-def draft_decode_action(action_idx: int) -> tuple[int, tuple[int, int]]:
+  def decode_action(self, action_idx: int) -> tuple[int, tuple[int, int]]:
     """
     Convert a single integer 0..20 back to (paw_index, (row, col)).
     """

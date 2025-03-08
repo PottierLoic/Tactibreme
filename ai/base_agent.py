@@ -139,3 +139,8 @@ class AgentBase:
         """
         self.epsilon = max(min_epsilon, self.epsilon - decay_amount)
 
+    def encode_action(self, move: tuple[int, tuple[int, int]]) -> int:
+        raise NotImplementedError("encode_action method not implemented.")
+
+    def decode_action(self, action_idx: int) -> tuple[int, tuple[int, int]]:
+        raise NotImplementedError("decode_action method not implemented.")

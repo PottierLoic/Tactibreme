@@ -2,10 +2,10 @@ import random
 from tqdm import tqdm
 from enum import Enum
 from logger import get_logger
-from ai.game_agent import GameAgent, game_decode_action, game_encode_action
+from ai.game_agent import GameAgent
 from ai.network import Network
 from ai.draft_network import Draft_network
-from ai.draft_agent import DraftAgent, draft_decode_action, draft_encode_action
+from ai.draft_agent import DraftAgent
 from board import Board, GameFinished
 from color import Color
 from paw import Paw
@@ -83,7 +83,7 @@ class Game:
             state_tensor = draft_agent.encode_board(self.board, reverse=(is_red_turn))
             while not is_move_valid:
                 move_idx = draft_agent.select_action(self.board, [], reverse=(is_red_turn))
-                paw_idx, pos = draft_decode_action(move_idx)
+                paw_idx, pos = draft_agent.decode_action(move_idx)
                 row, col = pos
                 row = 0 if is_red_turn else 4
                 pos = (row, col)
@@ -120,7 +120,7 @@ class Game:
                     get_logger(__name__).debug("No valid moves, ending game.")
                     break
                 move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
-                paw_index, destination = game_decode_action(move_idx)
+                paw_index, destination = agent.decode_action(move_idx)
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
                 agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
                 selected_paw = agent_paws[paw_index]
@@ -248,26 +248,12 @@ class Game:
                     get_logger(__name__).debug("No valid moves, ending game.")
                     break
                 move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
-                paw_index, destination = game_decode_action(move_idx)
+                paw_index, destination = agent.decode_action(move_idx)
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
                 agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
                 selected_paw = agent_paws[paw_index]
                 m = self.process_move(selected_paw, destination)
                 if (m == 1):
-                    for color in self.draft_buffer:
-                        draft_agent = self.draft_agent1 if color == self.draft_agent1.color else self.draft_agent2
-                        for tensor_t0, move_idx, is_valid, tensor_t1 in self.draft_buffer[color]:
-                            reward = 0
-                            if is_valid:
-                                if color == self.current_turn:
-                                    reward = 100
-                                else:
-                                    reward = -100
-                            else:
-                                reward = -5
-                            reward = 100 if color == self.current_turn and is_valid else -10
-                            draft_agent.train()
-                            draft_agent.store_transition(tensor_t0, move_idx, reward, tensor_t1, done=False)
                     game_finished = True
                     if agent == self.agent1:
                         agent1_wins += 1
