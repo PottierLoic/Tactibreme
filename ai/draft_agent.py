@@ -74,8 +74,7 @@ class DraftAgent(AgentBase):
                 return self.encode_action((rand_paw, rand_dest))
 
         q_values = self.network(state_tensor).detach().squeeze()
-        q_values = torch.exp(q_values)
-        probabilities = q_values / q_values.sum()
+        probabilities = torch.softmax(q_values, dim=-1)
         move_index = torch.multinomial(probabilities, 1).item()
         return move_index
 
