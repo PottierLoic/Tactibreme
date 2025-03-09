@@ -17,6 +17,7 @@ class AgentBase:
         gamma: float = 0.99,
         learning_rate: float = 1e-3,
         buffer_size: int = 10000,
+        epsilon_off: bool = False
     ) -> None:
         """s
         Initialize the Agent.
@@ -34,6 +35,7 @@ class AgentBase:
         self.gamma: float = gamma
         self.learning_rate: float = learning_rate
         self.buffer_size: int = buffer_size
+        self.epsilon_off: bool = epsilon_off
         self.optimizer: torch.optim.Optimizer = torch.optim.Adam(
             self.network.parameters(), lr=learning_rate
         )
@@ -133,7 +135,7 @@ class AgentBase:
         self.optimizer.step()
         self.update_epsilon()
 
-    def update_epsilon(self, min_epsilon: float = 0, decay_amount: float = 0.001) -> None:
+    def update_epsilon(self, min_epsilon: float = 0.2, decay_amount: float = 0.001) -> None:
         """
         Subtract decay_amount from epsilon until it reach min_epsilon
         """

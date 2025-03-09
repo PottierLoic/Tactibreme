@@ -17,6 +17,7 @@ class DraftAgent(AgentBase):
     gamma: float = 0.99,
     learning_rate: float = 1e-3,
     buffer_size: int = 10000,
+    epsilon_off: bool = False,
     ) -> None:
       """
       Initialize the draft Agent.
@@ -28,21 +29,9 @@ class DraftAgent(AgentBase):
         learning_rate (float): Learning rate for the optimizer.
         buffer_size (int): Maximum size of the replay buffer.
       """
+      super().__init__(color, network, epsilon, gamma, learning_rate, buffer_size, epsilon_off)
       self.reward_counter = 0
-      self.color: Color = color
-      self.network: nn.Module = network
-      self.epsilon: float = epsilon
-      self.gamma: float = gamma
-      self.learning_rate: float = learning_rate
-      self.buffer_size: int = buffer_size
-      self.optimizer: torch.optim.Optimizer = torch.optim.Adam(
-        self.network.parameters(), lr=learning_rate
-      )
-      self.memory: Deque[Tuple[Tensor, int, float, Tensor, bool]] = deque(
-        maxlen=buffer_size
-      )
-      self.criterion: nn.Module = nn.MSELoss()
-
+      
   def encode_board(self, board: Board, reverse: bool = False) -> Tensor:
         """
         Encode the board state into a tensor.
@@ -78,15 +67,17 @@ class DraftAgent(AgentBase):
             tuple: Selected (paw_index, destination).
         """
         state_tensor = self.encode_board(board, reverse)
-        if random.random() < self.epsilon:
-            rand_paw = random.randint(0, 3)
-            rand_dest = (0 if reverse else 4, random.randint(0, 4))
-            # random_move = random.choice(valid_moves)
-            return self.encode_action((rand_paw, rand_dest))
+        if not self.epsilon_off:
+            if random.random() < self.epsilon:
+                rand_paw = random.randint(0, 3)
+                rand_dest = (0 if reverse else 4, random.randint(0, 4))
+                return self.encode_action((rand_paw, rand_dest))
 
-        output = self.network(state_tensor).detach().squeeze()
-        best_move_index = torch.argmax(output).item()
-        return best_move_index
+        q_values = self.network(state_tensor).detach().squeeze()
+        q_values = torch.exp(q_values)
+        probabilities = q_values / q_values.sum()
+        move_index = torch.multinomial(probabilities, 1).item()
+        return move_index
 
   def encode_action(self, move: tuple[int, tuple[int, int]]) -> int:
     """

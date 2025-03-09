@@ -17,8 +17,9 @@ class GameAgent(AgentBase):
         gamma: float = 0.99,
         learning_rate: float = 1e-3,
         buffer_size: int = 10000,
+        epsilon_off: bool = False
     ) -> None:
-        super().__init__(color, network, epsilon, gamma, learning_rate, buffer_size)
+        super().__init__(color, network, epsilon, gamma, learning_rate, buffer_size, epsilon_off)
 
     def create_mask(self, valid_moves: List[Tuple[int, Tuple[int, int]]]) -> Tensor:
         """
@@ -68,16 +69,21 @@ class GameAgent(AgentBase):
             tuple: Selected (paw_index, destination).
         """
         state_tensor = self.encode_board(board, reverse)
-        if random.random() < self.epsilon:
-            random_move = random.choice(valid_moves)
-            return self.encode_action(random_move)
+        if not self.epsilon_off:
+            if random.random() < self.epsilon:
+                random_move = random.choice(valid_moves)
+                return self.encode_action(random_move)
 
-        output = self.network(state_tensor).detach().squeeze()
+        q_values = self.network(state_tensor).detach().squeeze()
         mask = self.create_mask(valid_moves).to(self.network.device)
-        masked_output = output * mask
-        masked_output[mask == 0] = -float("inf")
-        best_move_index = torch.argmax(masked_output).item()
-        return best_move_index
+        q_values[mask == 0] = -1e9
+        q_values = torch.exp(q_values) * mask
+        if q_values.sum() == 0:
+            probabilities = mask / mask.sum()
+        else:
+            probabilities = q_values / q_values.sum()
+        move_index = torch.multinomial(probabilities, 1).item()
+        return move_index
 
     def encode_action(self, move: tuple[int, tuple[int, int]]) -> int:
         """

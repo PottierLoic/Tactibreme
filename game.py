@@ -1,4 +1,5 @@
 import random
+from typing import Tuple
 from tqdm import tqdm
 from enum import Enum
 from logger import get_logger
@@ -9,7 +10,6 @@ from ai.draft_agent import DraftAgent
 from board import Board, GameFinished
 from color import Color
 from paw import Paw
-from reward import calculate_reward
 from stats import Stats
 from writerBuffer import WriterBuffer
 from paw import *
@@ -43,24 +43,29 @@ class Game:
         self.draft_buffer : dict[Color, old] = {} # Color -> [(tensor_t0, move_idx, is_valid, tensor_t1)]
 
         if mode in ["train", "ai_vs_ai"]:
+            epsilon_off = mode == "ai_vs_ai"
             self.agent1 = GameAgent(
                 color=Color.BLUE,
                 network=Network(),
+                epsilon_off=epsilon_off,
                 **agent_params
             )
 
             self.agent2 = GameAgent(
                 color=Color.RED,
                 network=Network(),
+                epsilon_off=epsilon_off,
                 **agent_params
             )
             self.draft_agent1 = DraftAgent(
                 color=Color.BLUE,
                 network=Draft_network(),
+                epsilon_off=epsilon_off,
             )
             self.draft_agent2 = DraftAgent(
                 color=Color.RED,
                 network=Draft_network(),
+                epsilon_off=epsilon_off,
             )
             if agent1_path:
                 self.agent1.load_checkpoint(agent1_path)
@@ -125,7 +130,7 @@ class Game:
                 agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
                 selected_paw = agent_paws[paw_index]
                 m = self.process_move(selected_paw, destination)
-                reward = calculate_reward(self.board, (paw_index, destination), self.current_turn)
+                reward = self.calculate_reward((paw_index, destination), self.current_turn)
                 if (m == 1):
                     for color in self.draft_buffer:
                         draft_agent = self.draft_agent1 if color == self.draft_agent1.color else self.draft_agent2
@@ -271,3 +276,12 @@ class Game:
             get_logger(__name__).info("Recording aborted")
         else:
             get_logger(__name__).info("Recording complete!")
+
+    def calculate_reward(
+        self, move: Tuple[int, Tuple[int, int]], color: Color
+    ) -> int:
+        total_reward = 0
+        paw, destination = move
+        if self.board.check_win(destination):
+            total_reward += 100
+        return total_reward
