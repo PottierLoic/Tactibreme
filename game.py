@@ -1,15 +1,18 @@
 import random
+from typing import Tuple
 from tqdm import tqdm
 from enum import Enum
 from logger import get_logger
-from ai.game_agent import GameAgent, decode_action, encode_action
+from ai.game_agent import GameAgent
 from ai.network import Network
+from ai.draft_network import Draft_network
+from ai.draft_agent import DraftAgent
 from board import Board, GameFinished
 from color import Color
 from paw import Paw
-from reward import calculate_reward
 from stats import Stats
 from writerBuffer import WriterBuffer
+from paw import *
 
 class Game:
     def __init__(self, agent1_path=None, agent2_path=None, num_games=1000, mode="train", model_name=None, **agent_params):
@@ -37,26 +40,70 @@ class Game:
         self.mode = mode
         self.model_name = model_name
         self.stats = Stats()
+        self.draft_buffer : dict[Color, old] = {} # Color -> [(tensor_t0, move_idx, is_valid, tensor_t1)]
 
         if mode in ["train", "ai_vs_ai"]:
+            epsilon_off = mode == "ai_vs_ai"
             self.agent1 = GameAgent(
                 color=Color.BLUE,
                 network=Network(),
+                epsilon_off=epsilon_off,
                 **agent_params
             )
 
             self.agent2 = GameAgent(
                 color=Color.RED,
                 network=Network(),
+                epsilon_off=epsilon_off,
                 **agent_params
             )
-
+            self.draft_agent1 = DraftAgent(
+                color=Color.BLUE,
+                network=Draft_network(),
+                epsilon_off=epsilon_off,
+            )
+            self.draft_agent2 = DraftAgent(
+                color=Color.RED,
+                network=Draft_network(),
+                epsilon_off=epsilon_off,
+            )
             if agent1_path:
                 self.agent1.load_checkpoint(agent1_path)
                 get_logger(__name__).info(f"Loaded Agent 1 from {agent1_path}")
             if agent2_path:
                 self.agent2.load_checkpoint(agent2_path)
                 get_logger(__name__).info(f"Loaded Agent 2 from {agent2_path}")
+
+    def draft(self, STOP_EVENT) -> None:
+        self.draft_buffer[Color.BLUE] = []
+        self.draft_buffer[Color.RED]  = []
+        for turn in range(8):
+            if STOP_EVENT.is_set():
+                STOP_EVENT.set()
+                get_logger(__name__).info("Draft aborted")
+                return
+            is_move_valid = False
+            is_red_turn = turn % 2 == 1
+            draft_agent = self.draft_agent1 if not is_red_turn else self.draft_agent2
+            state_tensor = draft_agent.encode_board(self.board, reverse=(is_red_turn))
+            while not is_move_valid:
+                move_idx = draft_agent.select_action(self.board, [], reverse=(is_red_turn))
+                paw_idx, pos = draft_agent.decode_action(move_idx)
+                row, col = pos
+                row = 0 if is_red_turn else 4
+                pos = (row, col)
+                paw = Paw(PawType(paw_idx), draft_agent.color, pos)
+                is_move_valid = self.board.init_paw(paw, pos)
+                if is_move_valid:
+                    self.writer.set_color(draft_agent.color.value)
+                    self.writer.set_paw(paw.paw_type.value)
+                    self.writer.set_dest(pos[0], pos[1])
+                    self.writer.push()
+                    self.writer.reset_line()
+                next_state_tensor = draft_agent.encode_board(self.board, reverse=(is_red_turn))
+                self.draft_buffer[draft_agent.color].append((state_tensor, move_idx, is_move_valid, next_state_tensor))
+        self.draft_agent1.encode_board(self.board)
+        return
 
     def train_agents(self, STOP_EVENT) -> None:
         """
@@ -68,34 +115,47 @@ class Game:
         progress_bar = tqdm(range(self.num_games), desc="Training Games", unit="game", dynamic_ncols=True)
         for _ in range(self.num_games):
             self.reset_game()
-            self.current_turn = random.choice([Color.BLUE, Color.RED])
+            self.draft(STOP_EVENT)
             game_finished = False
             while (not game_finished) and (not STOP_EVENT.is_set()):
                 agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
-                if agent == self.agent1:
-                    self.writer.set_agent(0)
-                else:
-                    self.writer.set_agent(1)
-                self.writer.set_epsilon(agent.epsilon)
                 state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
                 valid_moves = self.get_valid_moves(self.current_turn)
                 if not valid_moves:
                     get_logger(__name__).debug("No valid moves, ending game.")
                     break
                 move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
-                paw_index, destination = decode_action(move_idx)
+                paw_index, destination = agent.decode_action(move_idx)
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
                 agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
                 selected_paw = agent_paws[paw_index]
-
-                reward = calculate_reward(self.board, (paw_index, destination), self.current_turn)
-                self.writer.set_reward(reward)
                 m = self.process_move(selected_paw, destination)
+                reward = self.calculate_reward((paw_index, destination), self.current_turn)
+                if (m == 1):
+                    for color in self.draft_buffer:
+                        draft_agent = self.draft_agent1 if color == self.draft_agent1.color else self.draft_agent2
+                        for tensor_t0, move_idx, is_valid, tensor_t1 in self.draft_buffer[color]:
+                            reward_draft = 0
+                            if is_valid:
+                                if color == self.current_turn:
+                                    reward_draft = 100
+                                else:
+                                    reward_draft = -100
+                            else:
+                                reward_draft = -5
+                            reward_draft = 100 if color == self.current_turn and is_valid else -10
+                            draft_agent.train()
+                            draft_agent.store_transition(tensor_t0, move_idx, reward_draft, tensor_t1, done=False)
+                    game_finished = True
+                if agent == self.agent1:
+                    self.writer.set_agent(0)
+                else:
+                    self.writer.set_agent(1)
+                self.writer.set_epsilon(agent.epsilon)
+                self.writer.set_reward(reward)
                 self.writer.set_win(m)
                 self.writer.push()
                 self.writer.reset_line()
-                if (m == 1):
-                    game_finished = True
                 next_state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
                 agent.store_transition(state_tensor, move_idx, reward, next_state_tensor, done=False)
                 agent.train(batch_size=32)
@@ -151,10 +211,8 @@ class Game:
     def get_valid_moves(self, color: Color) -> list[tuple[int, tuple[int, int]]]:
         """
         Retrieve all possible moves for the given color.
-
         Args:
             color (Color): The color to get moves from.
-
         Returns:
             list[tuple[int, tuple[int, int]]]: A list of (paw_index, destination).
         """
@@ -184,37 +242,46 @@ class Game:
             if STOP_EVENT.is_set():
                 break
             self.reset_game()
+            self.draft(STOP_EVENT)
             self.current_turn = random.choice([Color.BLUE, Color.RED])
             game_finished = False
             while not game_finished and not STOP_EVENT.is_set():
                 agent = self.agent1 if self.current_turn == Color.BLUE else self.agent2
-                if agent == self.agent1:
-                    self.writer.set_agent(0)
-                else:
-                    self.writer.set_agent(1)
                 state_tensor = agent.encode_board(self.board, reverse=(self.current_turn == Color.RED))
                 valid_moves = self.get_valid_moves(self.current_turn)
                 if not valid_moves:
                     get_logger(__name__).debug("No valid moves, ending game.")
                     break
                 move_idx = agent.select_action(self.board, valid_moves, reverse=(self.current_turn == Color.RED))
-                paw_index, destination = decode_action(move_idx)
+                paw_index, destination = agent.decode_action(move_idx)
                 all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
                 agent_paws = self.board.get_unicolor_list(all_paws, self.current_turn)
                 selected_paw = agent_paws[paw_index]
                 m = self.process_move(selected_paw, destination)
-                self.writer.set_win(m)
-                self.writer.push()
-                self.writer.reset_line()
                 if (m == 1):
                     game_finished = True
                     if agent == self.agent1:
                         agent1_wins += 1
+                if agent == self.agent1:
+                    self.writer.set_agent(0)
+                else:
+                    self.writer.set_agent(1)
+                self.writer.set_win(m)
+                self.writer.push()
+                self.writer.reset_line()
                 self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
             progress_bar.update(1)
         progress_bar.close()
-        print(f"Agent1 win rate: {float(agent1_wins) / self.num_games * 100:.2f}%")
         if STOP_EVENT.is_set():
             get_logger(__name__).info("Recording aborted")
         else:
             get_logger(__name__).info("Recording complete!")
+
+    def calculate_reward(
+        self, move: Tuple[int, Tuple[int, int]], color: Color
+    ) -> int:
+        total_reward = 0
+        paw, destination = move
+        if self.board.check_win(destination):
+            total_reward += 100
+        return total_reward

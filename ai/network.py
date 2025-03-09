@@ -21,6 +21,8 @@ class Network(nn.Module):
             nn.Flatten(),
             nn.Linear(board_size[0] * board_size[1] * 64, 128),
             nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
             nn.Linear(128, 100),
         )
         self.to(self.device)
