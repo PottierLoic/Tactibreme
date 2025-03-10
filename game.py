@@ -95,7 +95,9 @@ class Game:
                 paw = Paw(PawType(paw_idx), draft_agent.color, pos)
                 is_move_valid = self.board.init_paw(paw, pos)
                 if is_move_valid:
+                    self.writer.set_agent(draft_agent.color.value)
                     self.writer.set_color(draft_agent.color.value)
+                    self.writer.set_win(0)
                     self.writer.set_paw(paw.paw_type.value)
                     self.writer.set_dest(pos[0], pos[1])
                     self.writer.push()
