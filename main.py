@@ -9,6 +9,7 @@ from constants import *
 from game import Game
 from logger import get_logger
 from paw import Paw
+from color import Color
 import sys
 
 lock = threading.Lock()
@@ -41,6 +42,10 @@ def parse_args():
     record_parser.add_argument("--blue", type=str, required=True, help="Path to blue AI model")
     record_parser.add_argument("--red", type=str, required=True, help="Path to red AI model")
     record_parser.add_argument("--ui", action="store_true", help="Enable pygame UI")
+
+    # Human vs AI Command
+    play_parser = subparsers.add_parser("play", help="Play a match against AI")
+    play_parser.add_argument("--ai", type=str, required=True, help="Path to AI model")
     return parser.parse_args()
 
 
@@ -115,13 +120,13 @@ class Context:
         destination = (row, col)
         if destination in self.possible_moves:
             try:
-                message = self.game.play_turn(self.selected_paw, destination)
+                result = self.game.play_turn(self.selected_paw, destination)
                 self.selected_paw = None
                 self.possible_moves = []
+                if result == 1:
+                    raise GameFinished(winner_color=self.game.current_turn)
             except GameFinished as game_ended:
-                get_logger(__name__).debug(
-                    f"The winner is {game_ended.winner_color} !!!!"
-                )
+                get_logger(__name__).debug(f"The winner is {game_ended.winner_color} !!!!")
                 return
 
     def handle_arrow_key(self) -> None:
@@ -168,11 +173,20 @@ def run_training(args, controller):
     game.train_agents(STOP_EVENT)
     STOP_EVENT.set()
 
-def run_ui(controller):
+def run_ui(args, controller):
     """Runs the pygame UI"""
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
     pygame.display.set_caption("Les Tacticiens de Brême")
+
+    if args.command == "train":
+        task_thread = threading.Thread(target=run_training, args=(args, controller))
+        task_thread.start()
+        pool.append(task_thread)
+    elif args.command == "record":
+        task_thread = threading.Thread(target=run_record, args=(args, controller))
+        task_thread.start()
+        pool.append(task_thread)
 
     while not STOP_EVENT.is_set():
         screen.fill(BLACK)
@@ -186,6 +200,56 @@ def run_ui(controller):
             if event.type == pygame.QUIT:
                 STOP_EVENT.set()
 
+    pygame.quit()
+
+def run_human_vs_ai(args, controller):
+    """Runs Human vs AI game on the main thread with UI"""
+    pygame.init()
+    screen = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
+    pygame.display.set_caption("Les Tacticiens de Brême - Humain vs AI")
+
+    ai_color = "RED"
+    game = Game(
+        agent1_path=args.ai,
+        num_games=1,
+        mode="human_vs_ai",
+    )
+    with lock:
+        controller.game = game
+
+    fake_stop_event = threading.Event()
+    controller.game.draft(fake_stop_event)
+
+    while not STOP_EVENT.is_set():
+        screen.fill(BLACK)
+        controller.draw_grid(screen)
+        controller.draw_paws(screen)
+        if controller.selected_paw:
+            controller.highlight_moves(screen)
+
+        with lock:
+            if not STOP_EVENT.is_set():
+                try:
+                    controller.game.play_ai_turn()
+                except GameFinished as game_ended:
+                    get_logger(__name__).debug(
+                        f"The winner is {game_ended.winner_color} !!!!"
+                    )
+                    STOP_EVENT.set()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                STOP_EVENT.set()
+            elif event.type == pygame.MOUSEBUTTONDOWN and controller.game.current_turn == Color.BLUE:
+                if event.button == 1:
+                    controller.handle_left_click(event.pos)
+                elif event.button == 3:
+                    controller.handle_right_click(event.pos)
+            elif event.type == pygame.KEYDOWN and controller.game.current_turn == Color.BLUE:
+                if event.key == pygame.K_RIGHT:
+                    controller.handle_arrow_key()
+
+        pygame.display.flip()
     pygame.quit()
 
 def run_record(args, controller):
@@ -204,21 +268,21 @@ def run_record(args, controller):
         controller.game = game
     game.record_games(STOP_EVENT)
 
-def setup_threads(args, controller):
-    if args.ui:
-        ui_thread = threading.Thread(target=run_ui, args=(controller,))
-        ui_thread.start()
-        pool.append(ui_thread)
-
 def main():
     args = parse_args()
     controller = Context()
-    setup_threads(args, controller)
     command_map = {
         "train": run_training,
         "record": run_record,
+        "play": run_human_vs_ai
     }
-    command_map[args.command](args, controller)
+    if args.command == "play" or args.ui:
+        command_map[args.command](args, controller)
+    else:
+        task_thread = threading.Thread(target=command_map[args.command], args=(args, controller))
+        task_thread.start()
+        pool.append(task_thread)
+        task_thread.join()
     STOP_EVENT.set()
     for thread in pool:
         thread.join()

@@ -42,37 +42,38 @@ class Game:
         self.stats = Stats()
         self.draft_buffer : dict[Color, old] = {} # Color -> [(tensor_t0, move_idx, is_valid, tensor_t1)]
 
-        if mode in ["train", "ai_vs_ai"]:
-            epsilon_off = mode == "ai_vs_ai"
-            self.agent1 = GameAgent(
-                color=Color.BLUE,
-                network=Network(),
-                epsilon_off=epsilon_off,
-                **agent_params
-            )
+        epsilon_off = mode in ["ai_vs_ai", "human_vs_ai"]
+        self.agent1 = GameAgent(
+            color=Color.BLUE,
+            network=Network(),
+            epsilon_off=epsilon_off,
+            **agent_params
+        )
 
-            self.agent2 = GameAgent(
-                color=Color.RED,
-                network=Network(),
-                epsilon_off=epsilon_off,
-                **agent_params
-            )
-            self.draft_agent1 = DraftAgent(
-                color=Color.BLUE,
-                network=Draft_network(),
-                epsilon_off=epsilon_off,
-            )
-            self.draft_agent2 = DraftAgent(
-                color=Color.RED,
-                network=Draft_network(),
-                epsilon_off=epsilon_off,
-            )
-            if agent1_path:
-                self.agent1.load_checkpoint(agent1_path)
-                get_logger(__name__).info(f"Loaded Agent 1 from {agent1_path}")
-            if agent2_path:
-                self.agent2.load_checkpoint(agent2_path)
-                get_logger(__name__).info(f"Loaded Agent 2 from {agent2_path}")
+        self.agent2 = GameAgent(
+            color=Color.RED,
+            network=Network(),
+            epsilon_off=epsilon_off,
+            **agent_params
+        )
+        self.draft_agent1 = DraftAgent(
+            color=Color.BLUE,
+            network=Draft_network(),
+            epsilon_off=epsilon_off,
+        )
+        self.draft_agent2 = DraftAgent(
+            color=Color.RED,
+            network=Draft_network(),
+            epsilon_off=epsilon_off,
+        )
+        if agent1_path:
+            self.agent1.load_checkpoint(agent1_path)
+            get_logger(__name__).info(f"Loaded Agent 1 from {agent1_path}")
+        if agent2_path:
+            self.agent2.load_checkpoint(agent2_path)
+            get_logger(__name__).info(f"Loaded Agent 2 from {agent2_path}")
+        if mode == "human_vs_ai":
+            self.writer = WriterBuffer("play", self.num_games, self.model_name)
 
     def draft(self, STOP_EVENT) -> None:
         self.draft_buffer[Color.BLUE] = []
@@ -285,3 +286,28 @@ class Game:
         if self.board.check_win(destination):
             total_reward += 100
         return total_reward
+
+    def play_turn(self, selected_paw: Paw, destination: tuple[int, int]) -> int:
+        """Plays a turn for the human player and switches turn."""
+        result = self.process_move(selected_paw, destination)
+        if result != -1:
+            self.current_turn = Color.RED if self.current_turn == Color.BLUE else Color.BLUE
+        return result
+
+    def play_ai_turn(self) -> None:
+        """Plays a turn for the AI (red)."""
+        if self.current_turn == Color.RED:
+            valid_moves = self.get_valid_moves(Color.RED)
+            if not valid_moves:
+                get_logger(__name__).debug("No valid moves for AI, ending game.")
+                return
+            move_idx = self.agent1.select_action(self.board, valid_moves, reverse=True)
+            paw_index, destination = self.agent1.decode_action(move_idx)
+            all_paws = [paw for paw_list in self.board.paws_coverage.values() for paw in paw_list]
+            agent_paws = self.board.get_unicolor_list(all_paws, Color.RED)
+            selected_paw = agent_paws[paw_index]
+            result = self.process_move(selected_paw, destination)
+            if result != -1:
+                self.current_turn = Color.BLUE
+            if result == 1:
+                raise GameFinished(winner_color=Color.RED)
