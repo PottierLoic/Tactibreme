@@ -39,9 +39,8 @@ def load_data(csv_file):
     df[['dog_pile', 'cat_pile', 'rooster_pile']] = df[['dog_pile', 'cat_pile', 'rooster_pile']].astype(bool)
     return df
 
-def list_games(df):
-    """Splits the dataframe into separate games."""
-    df["game_id"] = df["win"].shift(fill_value=0).cumsum()
+def list_games(df: pd.DataFrame) -> list:
+    """Split the dataframe for each game_id."""
     return [group for _, group in df.groupby("game_id")]
 
 def count_moves(game_df):
@@ -130,7 +129,6 @@ def main():
         sys.exit(1)
     path = sys.argv[1]
     df = load_data(path)
-
     print("====================Stats for each games====================")
     games = list_games(df)
     for i, game in enumerate(games):
