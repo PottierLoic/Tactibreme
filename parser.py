@@ -106,22 +106,22 @@ def calculate_winrate_pos(df):
         print("No data available.")
     else:
         for (x, y), win_rate in win_rate_by_position.items():
-            print(f"\t({x}, {y}): {win_rate:.2f}% win")
+            print(f"\t({x}, {y}): {win_rate:.2%} win")
 
 def calculate_winrate_paw(df):
     """
-    Calculates and displays the winrate for each paw that gives win.
+    Calculates and displays the percentage of wins attributed to each paw.
     """
     if not {"id_paw", "win"}.issubset(df.columns):
         print("Error: The DataFrame must contain 'id_paw' and 'win' columns.")
         return
-    win_rate_paw = df.groupby(["id_paw"])["win"].mean() * 100
-    print("[Winrate by paw]")
-    if win_rate_paw.empty:
-        print("No data available.")
+    win_counts = df[df["win"] == 1]["id_paw"].value_counts(normalize=True) * 100
+    print("[Percentage of total wins by paw]")
+    if win_counts.empty:
+        print("No wins recorded.")
     else:
-        for paw, win_rate in win_rate_paw.items():
-            print(f"\t{paw_name(paw)}: {win_rate:.2f}% win")
+        for paw, percentage in win_counts.items():
+            print(f"\t{paw_name(paw)}: {percentage:.2f}% wins")
 
 def main():
     if len(sys.argv) < 2:
