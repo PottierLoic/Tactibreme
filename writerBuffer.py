@@ -6,7 +6,8 @@ class WriterBuffer:
         os.makedirs('csv', exist_ok=True)
         csvfile = open("csv/{}_rec_{}_{}.csv".format(mode, game_amount, model_name), 'w', newline='')
         self.writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        self.writer.writerow(['agent', 'color', 'id_paw', 'dest_x', 'dest_y', 'reward', 'win', 'epsilon', 'retreat_cause', 'dog_pile', 'cat_pile', 'rooster_pile'])
+        self.writer.writerow(['game_id', 'agent', 'color', 'id_paw', 'dest_x', 'dest_y', 'reward', 'win', 'epsilon', 'retreat_cause', 'dog_pile', 'cat_pile', 'rooster_pile'])
+        self.game_id = None
         self.agent = None
         self.color = None
         self.id_paw = None
@@ -22,6 +23,7 @@ class WriterBuffer:
 
 
     def reset_line(self):
+        self.game_id = None
         self.agent = None
         self.color = None
         self.id_paw = None
@@ -36,7 +38,10 @@ class WriterBuffer:
         self.rooster_pile = None
 
     def push(self):
-        self.writer.writerow([self.agent, self.color, self.id_paw, self.dest_x, self.dest_y, self.reward, self.win, self.epsilon, self.retreat_cause, self.dog_pile, self.cat_pile, self.rooster_pile])
+        self.writer.writerow([self.game_id, self.agent, self.color, self.id_paw, self.dest_x, self.dest_y, self.reward, self.win, self.epsilon, self.retreat_cause, self.dog_pile, self.cat_pile, self.rooster_pile])
+
+    def set_game_id(self, game_id):
+        self.game_id = game_id
 
     def set_agent(self, agent):
         self.agent = agent

@@ -41,6 +41,7 @@ class Game:
         self.model_name = model_name
         self.stats = Stats()
         self.draft_buffer : dict[Color, old] = {} # Color -> [(tensor_t0, move_idx, is_valid, tensor_t1)]
+        self.game_id = 0
 
         if mode in ["train", "ai_vs_ai"]:
             epsilon_off = mode == "ai_vs_ai"
@@ -100,6 +101,7 @@ class Game:
                     self.writer.set_win(0)
                     self.writer.set_paw(paw.paw_type.value)
                     self.writer.set_dest(pos[0], pos[1])
+                    self.writer.set_game_id(self.game_id)
                     self.writer.push()
                     self.writer.reset_line()
                 next_state_tensor = draft_agent.encode_board(self.board, reverse=(is_red_turn))
@@ -153,6 +155,7 @@ class Game:
                     self.writer.set_agent(0)
                 else:
                     self.writer.set_agent(1)
+                self.writer.set_game_id(self.game_id)
                 self.writer.set_epsilon(agent.epsilon)
                 self.writer.set_reward(reward)
                 self.writer.set_win(m)
@@ -181,6 +184,7 @@ class Game:
         self.retreat_activated = False
         self.retreat_position = None
         self.stats = Stats()
+        self.game_id += 1
         get_logger(__name__).debug("Game has been reset. A new game starts!")
 
     def process_move(self, selected_paw: Paw, destination: tuple[int, int]) -> None:
@@ -268,6 +272,7 @@ class Game:
                     self.writer.set_agent(0)
                 else:
                     self.writer.set_agent(1)
+                self.writer.set_game_id(self.game_id)
                 self.writer.set_win(m)
                 self.writer.push()
                 self.writer.reset_line()
