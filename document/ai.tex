@@ -152,7 +152,7 @@ La sortie compte \(4 \times 25 = 100\) mouvements possibles :
     \item 25 cases possibles (une grille \(5 \times 5\)).
 \end{itemize}
 
-\subsubsection{FAUT TROUVER UNE NOM} % TODO
+\subsubsection{Encodage des Placements}
 Chaque index \(i\) dans la sortie correspond à :
 \[
 \text{index\_pion} = \frac{i}{25}, \quad
@@ -192,9 +192,218 @@ L'architecture prend la représentation du plateau en entrée et produit une dis
 \]
 Ce vecteur est ensuite combiné avec le \textit{masque} pour garantir que seuls les mouvements valides sont pris en compte.
 
-\subsection{Limitations du Modèle}
+\subsection{Mécanisme de sélection des actions}
+Après avoir obtenu les scores pour chaque action possible, l'agent doit sélectionner un mouvement à exécuter. Plutôt que de choisir systématiquement l'action avec le score le plus élevé, nous utilisons une approche probabiliste qui favorise l'exploration tout en privilégiant les actions à fort potentiel.
+
+\subsubsection{Politique stochastique}
+Nous convertissons les scores du réseau en une distribution de probabilités à l'aide de la fonction softmax:
+
+\[
+P(a_i) = \frac{e^{q_i}}{\sum_j e^{q_j}}
+\]
+
+où \(q_i\) est le score attribué à l'action \(i\) par le réseau.
+
+\subsubsection{Échantillonnage multinomial}
+Plutôt que de sélectionner l'action avec la probabilité la plus élevée (exploitation pure), nous échantillonnons une action selon la distribution calculée:
+
+\begin{verbatim}
+action_index = torch.multinomial(probabilités, 1).item()
+\end{verbatim}
+
+Cette approche offre plusieurs avantages:
 \begin{itemize}
-    \item \textbf{Dimensions fixes} : Les dimensions des entrées et des sorties doivent toujours rester constantes (\(8 \times 5 \times 5\) pour les entrées et \(100\) pour les sorties). Toute modification dans la taille du plateau ou le nombre de pions nécessiterait une révision complète du modèle.
+    \item \textbf{Exploration guidée}: Les actions avec des scores élevés ont plus de chances d'être sélectionnées, mais les actions moins prometteuses peuvent également être explorées.
+    \item \textbf{Diversité des stratégies}: L'agent ne joue pas toujours de manière déterministe, ce qui le rend moins prévisible et potentiellement plus robuste.
+    \item \textbf{Prévention du sur-ajustement}: La variabilité dans les actions aide à éviter que l'agent se bloque dans des stratégies sous-optimales.
+\end{itemize}
+
+\subsubsection{Masquage des actions invalides}
+Avant l'application de softmax, les actions invalides sont masquées en assignant une valeur très négative à leurs scores (\(-10^9\)):
+
+\begin{verbatim}
+q_values[mask == 0] = -1e9
+\end{verbatim}
+
+Cela garantit que leur probabilité après softmax sera pratiquement nulle, les excluant effectivement de la sélection.
+
+\subsubsection{Équilibre exploration-exploitation}
+Pendant l'entraînement, nous utilisons une politique \(\epsilon\)-greedy modifiée:
+\begin{itemize}
+    \item Avec une probabilité \(\epsilon\), l'agent choisit une action complètement aléatoire parmi les actions valides.
+    \item Avec une probabilité \(1-\epsilon\), l'agent utilise l'échantillonnage multinomial décrit ci-dessus.
+\end{itemize}
+
+Le paramètre \(\epsilon\) diminue progressivement au cours de l'entraînement, réduisant l'exploration aléatoire au profit de l'exploitation des connaissances acquises.
+
+
+
+\section{Modèle 2: IA de Draft}
+Ce second modèle est spécialisé dans la phase initiale de placement des pièces (draft). Il s'agit d'une phase cruciale où les joueurs placent leurs pions à tour de rôle sur leurs lignes de départ respectives. Ce modèle possède une architecture distincte, adaptée à cette phase spécifique du jeu.
+
+\begin{tikzpicture}[x=1.8cm,y=1.2cm]
+    % Input: 4 nodes
+    % Conv Layers (2-3): 16, 32 nodes
+    % Flatten Layer (4): 320 nodes
+    % Dense Layers (5-6): 128, 20 nodes
+    \readlist\Nnod{3,3,3,5,3,2} 
+    
+    \readlist\Nnode{40,240,320,320,128,20}  
+    \readlist\Cstr{x,h,h,a,z,y} 
+    
+    \def\yshift{0.55}
+    
+    \foreachitem \N \in \Nnod{
+        \def\lay{\Ncnt}
+        \pgfmathsetmacro\prev{int(\Ncnt-1)}
+        \foreach \i [evaluate={
+            \c = int(\i==\N);
+            \y = \N/2 - \i - \c * \yshift;
+            \x = \lay;
+            \n = \nstyle;
+            \index = (\i<\N ? int(\i) : "\Nnode[\lay]");
+        }] in {1,...,\N}{
+            \pgfmathsetmacro\nstyle{int(\n==1 ? "input" : (\n==2 ? "conv" : (\n==3 ? "conv" : (\n==4 ? "flat" : (\n==5 ? "dense" : "output")))))}
+            \node[\nstyle] (N\lay-\i) at (\x,\y) {$\strut\Cstr[\n]_{\index}$};
+            \ifnumcomp{\lay}{>}{1}{
+                \foreach \j in {1,...,\Nnod[\prev]}{
+                    \draw[white,line width=1.2,shorten >=1] (N\prev-\j) -- (N\lay-\i);
+                    \draw[connect] (N\prev-\j) -- (N\lay-\i);
+                }
+                \ifnum \lay=\Nnodlen
+                    \draw[connect] (N\lay-\i) --++ (0.5,0);
+                \fi
+            }{
+                \draw[connect] (0.5,\y) -- (N\lay-\i);
+            }
+        }
+        \path (N\lay-\N) --++ (0,1+\yshift) node[midway,scale=1.6] {$\vdots$};
+    }
+    \node[above=3,align=center,mydarkgreen] at (N1-1.90) {Input\\[-0.2em]Layer};
+    \node[above=3,align=center,mydarkorange] at (N2-1.90) {Conv\\[-0.2em]Layers};
+    \node[above=3,align=center,mydarkyellow] at (N4-1.90) {Flatten\\[-0.2em]Layer};
+    \node[above=3,align=center,mydarkblue] at (N5-1.90) {Dense\\[-0.2em]Layer};
+    \node[above=3,align=center,mydarkred] at (N6-1.90) {Output\\[-0.2em]Layer};
+\end{tikzpicture}
+
+\subsection{Représentation des Entrées}
+Dans la phase de draft, seules les lignes de départ sont pertinentes. Le plateau est donc représenté comme une grille \(2 \times 5\), où chaque case est encodée par un vecteur à 4 canaux décrivant la présence des différents pions.
+
+\begin{itemize}
+    \item Les 4 canaux représentent chaque type de pion (âne, chien, chat, coq).
+\end{itemize}
+
+\subsubsection{Dimensions des Entrées}
+\begin{itemize}
+    \item Pour un plateau unique : \((4, 2, 5)\) (canaux, lignes, colonnes).
+    \item Pour un lot de plateaux : \((\text{taille\_batch}, 4, 2, 5)\).
+\end{itemize}
+
+\subsection{Représentation des Sorties}
+La sortie du réseau encode tous les placements possibles sous forme de liste aplatie de paires \((\text{pion}, \text{colonne})\).
+
+\subsubsection{Taille de la Sortie}
+La sortie compte \(4 \times 5 = 20\) placements possibles :
+\begin{itemize}
+    \item 4 types de pions.
+    \item 5 positions possibles sur la ligne de départ.
+\end{itemize}
+
+\subsubsection{Encodage des Placements}
+Chaque index \(i\) dans la sortie correspond à :
+\[
+\text{type\_pion} = \lfloor \frac{i}{5} \rfloor, \quad
+\text{colonne} = i \bmod 5
+\]
+
+\subsection{Architecture du Réseau de Neurones}
+L'architecture prend la représentation du plateau de draft en entrée et produit une distribution sur les 20 placements possibles.
+
+\subsubsection{Entrée}
+\(\text{Dimensions d'Entrée}: (\text{taille\_batch}, 4, 2, 5)\)
+
+\subsubsection{Couches Convolutionnelles}
+\begin{itemize}
+    \item \(\text{Conv2D}(4 \rightarrow 16)\) \(\rightarrow\) ReLU
+    \item \(\text{Conv2D}(16 \rightarrow 32)\) \(\rightarrow\) ReLU
+\end{itemize}
+
+\subsubsection{Couches Entièrement Connectées}
+\begin{itemize}
+    \item \(\text{Flatten}\)
+    \item \(\text{Linear}(2 \times 5 \times 32 \rightarrow 128) \rightarrow \text{ReLU}\)
+    \item \(\text{Linear}(128 \rightarrow 20)\)
+\end{itemize}
+
+\subsubsection{Sortie}
+\[
+(\text{taille\_batch}, 20)
+\]
+
+\subsection{Mécanisme d'apprentissage spécifique au draft}
+L'apprentissage du modèle de draft présente des particularités importantes:
+
+\subsubsection{Signal de récompense différé}
+Contrairement au modèle principal où des récompenses peuvent être attribuées à chaque mouvement, le modèle de draft ne reçoit une récompense significative qu'à la fin de la partie:
+\begin{itemize}
+    \item Récompense positive (\(+100\)) si le joueur gagne la partie.
+    \item Récompense négative (\(-100\)) si le joueur perd la partie.
+    \item Récompense faiblement négative (\(-5\)) pour les placements invalides.
+\end{itemize}
+
+\subsubsection{Stockage des expériences de draft}
+Pour faciliter l'apprentissage malgré ce signal de récompense différé, nous maintenons un buffer spécifique pour les expériences de draft:
+\begin{verbatim}
+self.draft_buffer[color] = []  # Liste pour chaque couleur
+# Pour chaque action de draft:
+self.draft_buffer[color].append((state_tensor, move_idx, is_valid, next_state_tensor))
+\end{verbatim}
+
+À la fin de la partie, ces expériences sont utilisées pour entraîner le modèle de draft avec la récompense appropriée.
+
+\subsection{Interaction entre les modèles}
+Les deux modèles (draft et jeu principal) interagissent de la manière suivante:
+\begin{itemize}
+    \item Le modèle de draft détermine le placement initial des pièces.
+    \item Le modèle principal prend le relais pour la phase de jeu proprement dite.
+    \item Le résultat final influence l'apprentissage des deux modèles.
+\end{itemize}
+
+Cette séparation permet à chaque modèle de se spécialiser dans son domaine spécifique tout en contribuant à l'objectif global de victoire.
+
+\section{Interactions et Améliorations}
+
+\subsection{Coordination entre les systèmes d'IA}
+Le succès global de l'agent dépend de la coordination efficace entre les deux systèmes d'IA:
+\begin{itemize}
+    \item L'IA de draft doit apprendre à créer des positions favorables que l'IA de jeu pourra exploiter.
+    \item L'IA de jeu doit être capable d'utiliser efficacement les pièces placées par l'IA de draft.
+\end{itemize}
+
+Cette coordination émerge naturellement à travers le processus d'apprentissage, où les récompenses finales guident les deux systèmes vers des stratégies complémentaires.
+
+\subsection{Améliorations potentielles}
+Plusieurs pistes d'amélioration pourraient être explorées:
+
+\subsubsection{Architecture des réseaux}
+\begin{itemize}
+    \item Utilisation d'attention pour mieux capturer les relations entre pièces.
+    \item Réseaux résiduels pour faciliter l'entraînement des modèles profonds.
+    \item Paramétrage dynamique des couches en fonction de la taille du plateau.
+\end{itemize}
+
+\subsubsection{Mécanismes d'apprentissage}
+\begin{itemize}
+    \item Implémentation de méthodes d'apprentissage plus avancées (A3C, PPO).
+    \item Experience replay prioritaire pour favoriser les expériences les plus instructives.
+    \item Ajouter des récompenses plus variées que \texttt{victoire/défaite} pour l'agent principal.
+\end{itemize}
+
+\subsubsection{Entraînement et évaluation}
+\begin{itemize}
+    \item Parallélisation de l'entraînement sur plusieurs instances.
+    \item Tournois réguliers entre différentes versions des agents pour mesurer les progrès.
+    \item Visualisation des représentations internes pour mieux comprendre les stratégies apprises.
 \end{itemize}
 
 \end{document}
