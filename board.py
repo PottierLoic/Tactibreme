@@ -97,29 +97,12 @@ class Board:
             self.get_unicolor_list(paws, color), key=lambda paw: paw.paw_type.value
         )[0]
 
-    def valid_retreat_move(
-        self, paw: Paw, destination: tuple[int, int], retreat_position: tuple[int, int]
-    ) -> int:
+    def is_retreat_possible(self) -> bool:
         """
-        Check if a move is a valid retreat move.
-        Args:
-            paw (Paw): The paw to move.
-            destination (tuple[int, int]): The destination to check.
-            retreat_position (tuple[int, int]): The position where the retreat appears.
-        Returns:
-            Int: 0 -> movement not valid
-                 1 -> movement valid
-                -1 -> movement valid BUT no moves possible
+        Knowing retreat is activated, check if the retreat's paw to move has moves.
         """
-        if paw.position == retreat_position:
-            unicolor_list = self.get_unicolor_list(
-                self.paws_coverage[retreat_position], paw.color
-            )
-            if unicolor_list[0] == paw:
-                if len(self.possible_movements(paw)) != 0:
-                    return 1
-                return -1
-        return 0
+        assert self.retreat_status.is_activated == True
+        return len(self.get_movements(self.retreat_status.paw_to_move)) != 0
 
     def is_valid_position(self, position: tuple[int, int]) -> bool:
         """
@@ -236,15 +219,15 @@ class Board:
             list[tuple[int, int]]: A list of valid destinations for this paw.
         """
         if self.retreat_status.is_activated:
-            if paw.color != self.retreat_status.activator_color:
+            if self.is_retreat_possible():
                 if paw == self.retreat_status.paw_to_move:
-                    moves = self.get_movements(paw)
-                    if moves == []:
-                        self.retreat_status.is_activated = False
-                        return self.possible_movements(paw)
-                    return moves
-                return []
-        return self.get_movements(paw)
+                    return self.get_movements(paw)
+                else:
+                    return []
+            else:
+                return self.get_movements(paw)
+        else:
+            return self.get_movements(paw)
 
     def get_unicolor_list(self, paws: list[Paw], color: Color) -> list[Paw]:
         """
