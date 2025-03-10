@@ -1,0 +1,246 @@
+\documentclass[]{article}
+
+\title{\textbf{Documentation technique}}
+\author{Pottier Loïc, Gros Charlène, Mudoy Jacques, Horter Louise, Los Thomas}
+\date{\today}
+
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+  backgroundcolor=\color{backcolour},
+  commentstyle=\color{codegreen},
+  keywordstyle=\color{magenta},
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{codepurple},
+  basicstyle=\ttfamily\footnotesize,
+  breakatwhitespace=false,
+  breaklines=true,
+  captionpos=b,
+  keepspaces=true,
+  numbers=left,
+  numbersep=5pt,
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  tabsize=2
+}
+
+\lstset{style=mystyle}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\newpage
+
+\section{Introduction}
+
+Tactibreme est un projet dédié à l'implémentation et l'entraînement d'une intelligence artificielle pour le jeu de plateau "Les tacticiens de Brême". L'objectif principal est de développer des agents utilisant l'apprentissage par renforcement pour maîtriser les règles et stratégies de ce jeu.
+
+Le projet propose plusieurs fonctionnalités:
+\begin{itemize}
+  \item Entraînement d'agents IA via l'apprentissage par renforcement.
+  \item Possibilité de faire jouer des agents entre eux.
+  \item Génération de statistiques et analyses des parties.
+  \item Interface permettant de visualiser les parties.
+\end{itemize}
+
+\section{Technologies et Dépendances}
+
+\subsection{Langages et Frameworks}
+\begin{itemize}
+  \item \textbf{Python 3.8+}: Langage principal du projet.
+  \item \textbf{PyTorch}: Framework d'apprentage automatique utilisé pour l'implémentation des réseaux de neurones.
+  \item \textbf{Pygame}: Bibliothèque pour l'interface utilisateur.
+\end{itemize}
+
+\subsection{Bibliothèques principales}
+\begin{itemize}
+  \item \textbf{torch}: Pour la création et l'entraînement des réseaux de neurones.
+  \item \textbf{pygame}: Interface graphique pour visualiser les parties.
+  \item \textbf{tqdm}: Pour l'affichage des barres de progression durant l'entraînement.
+  \item \textbf{matplotlib et seaborn}: Pour la génération de graphiques et visualisations.
+  \item \textbf{pandas}: Pour la manipulation des données générées.
+\end{itemize}
+
+\subsection{Installation des dépendances}
+Toutes les dépendances nécessaires sont listées dans le fichier \texttt{requirements.txt} et peuvent être installées avec la commande:
+
+\begin{lstlisting}[language=bash]
+pip install -r requirements.txt
+\end{lstlisting}
+
+\textbf{Note importante:} Le fichier \texttt{requirements.txt} installe PyTorch dans sa version CPU uniquement. Pour exploiter les capacités GPU et accélérer considérablement l'entraînement, il est nécessaire d'installer manuellement une version de PyTorch compatible avec votre matériel spécifique (CUDA, ROCm, etc.). Veuillez consulter la documentation officielle de PyTorch (\url{https://pytorch.org/get-started/locally/}) pour les instructions d'installation correspondant à votre configuration matérielle.
+
+\section{Architecture du Projet}
+
+\subsection{Structure des dossiers}
+Le projet est organisé selon la structure suivante:
+
+\begin{itemize}
+  \item \textbf{/ai}: Contient les implémentations des agents IA et des réseaux de neurones.
+  \item \textbf{/csv}: Stockage des données d'entraînement et d'évaluation.
+  \item \textbf{/document}: Documentation technique et informations de conception.
+  \item \textbf{/logs}: Fichiers journaux générés pendant l'exécution.
+  \item \textbf{/tests}: Tests unitaires pour vérifier le bon fonctionnement des composants.
+  \item \textbf{/venv}: Environnement virtuel Python (généré lors de l'installation).
+  \item \textbf{/checkpoints}: Modèles sauvegardés après entraînement (générés pendant l'exécution).
+\end{itemize}
+
+\subsection{Composants principaux}
+Le projet est divisé en plusieurs composants interdépendants:
+
+\begin{itemize}
+  \item \textbf{Moteur de jeu}: Implémentation des règles du jeu, la gestion de l'état du plateau, et la vérification des mouvements valides.
+  \item \textbf{Module IA}: Agents intelligents basés sur l'apprentissage par renforcement.
+  \item \textbf{Interface utilisateur}: Visualisation du jeu et des interactions.
+  \item \textbf{Outils d'analyse}: Génération de statistiques et visualisations pour évaluer les performances.
+\end{itemize}
+
+\section{Moteur de Jeu}
+
+\subsection{Représentation du jeu}
+Le jeu "Les tacticiens de Brême" est implémenté avec les classes suivantes:
+
+\begin{itemize}
+  \item \textbf{Board} (\texttt{board.py}): Gère l'état du plateau, les positions des pièces et les mouvements.
+  \item \textbf{Paw} (\texttt{paw.py}): Représente une pièce du jeu avec son type, sa couleur et sa position.
+  \item \textbf{Game} (\texttt{game.py}): Orchestrateur principal qui gère le déroulement d'une partie, l'entrainement des agents et la génération de statistiques.
+\end{itemize}
+
+\subsection{Règles du jeu}
+Le jeu implémente les règles suivantes:
+\begin{itemize}
+  \item Déplacement spécifique pour chaque type de pièce (Donkey, Dog, Cat, Rooster équivalent à : Tour, Fou, Cavalier, Reine).
+  \item Phase de draft initiale où les joueurs placent une pièce à tour de rôle	sur le plateau jusqu'à ce que toutes les pièces soient placées.
+  \item Mécanisme de retraite lorsqu'une pièce est amenée sur la ligne de départ adverse.
+  \item Condition de victoire lorsqu'une pile contient 4 pièces.
+\end{itemize}
+
+\section{Module d'Intelligence Artificielle}
+
+Cette partie du projet est documentée en détail dans un document séparé dédié spécifiquement à l'intelligence artificielle. Voici un bref aperçu des composants principaux :
+
+\subsection{Architecture générale}
+Le système d'IA se divise en deux parties principales :
+\begin{itemize}
+  \item Des réseaux de neurones spécialisés pour chaque phase du jeu (phase de draft et phase principale).
+  \item Des agents qui utilisent ces réseaux pour prendre des décisions.
+\end{itemize}
+
+Le projet utilise l'apprentissage par renforcement avec une approche basée sur le Q-learning et l'experience replay.
+
+\subsection{Organisation des fichiers}
+Les composants d'IA sont organisés comme suit dans le dossier \texttt{/ai} :
+\begin{itemize}
+  \item \texttt{base\_agent.py} : Classe abstraite pour tous les agents
+  \item \texttt{game\_agent.py} : Agent pour la phase principale du jeu
+  \item \texttt{draft\_agent.py} : Agent pour la phase de draft
+  \item \texttt{network.py} : Réseau de neurones pour la phase principale
+  \item \texttt{draft\_network.py} : Réseau de neurones pour la phase de draft
+  \item \texttt{network.md} : Documentation détaillée sur l'architecture des réseaux
+\end{itemize}
+
+Pour les détails complets sur l'architecture des réseaux, les mécanismes d'apprentissage, les fonctions d'encodage et les stratégies d'entraînement, veuillez consulter le document dédié à l'IA du projet.
+
+\section{Outils et Utilitaires}
+
+\subsection{Enregistrement et analyse}
+\begin{itemize}
+  \item \textbf{WriterBuffer} (\texttt{writerBuffer.py}): Enregistre les données de jeu au format CSV.
+  \item \textbf{Logger} (\texttt{logger.py}): Système de journalisation pour le débogage et le suivi.
+  \item \textbf{Parser} (\texttt{parser.py}): Analyse des fichiers CSV générés pendant l'entraînement.
+  \item \textbf{Heatmap} (\texttt{heatmap.py}): Génération de cartes de chaleur pour visualiser les mouvements.
+\end{itemize}
+
+\subsection{Statistiques}
+La classe \texttt{Stats} (\texttt{stats.py}) collecte diverses métriques pendant les parties:
+\begin{itemize} % TODO
+  \item Taux de victoire pour chaque agent.
+  \item Moyenne de mouvements par parties.
+  \item blablabla
+  \item blablabla
+\end{itemize}
+
+\section{Utilisation du Projet}
+
+\subsection{Entraînement d'un modèle}
+Pour entraîner un nouveau modèle:
+
+\begin{lstlisting}[language=bash]
+python main.py train nom_du_modele --count=1000
+\end{lstlisting}
+
+Options disponibles:
+\begin{itemize}
+  \item \texttt{--count}: Nombre de parties pour l'entraînement (défaut: 1000)
+  \item \texttt{--load}: Chemins vers deux modèles existants pour continuer l'entraînement
+  \item \texttt{--epsilon}: Taux d'exploration initial
+  \item \texttt{--decay}: Taux de décroissance d'epsilon
+  \item \texttt{--gamma}: Facteur de remise pour les récompenses futures
+  \item \texttt{--lr}: Taux d'apprentissage
+  \item \texttt{--ui}: Active l'interface graphique pendant l'entraînement
+\end{itemize}
+
+\subsection{Confrontation entre modèles}
+Pour faire jouer deux modèles l'un contre l'autre:
+
+\begin{lstlisting}[language=bash]
+python main.py record --blue=chemin/vers/modele1.pth --red=chemin/vers/modele2.pth --count=100
+\end{lstlisting}
+
+Options disponibles:
+\begin{itemize}
+  \item \texttt{--count}: Nombre de parties à jouer
+  \item \texttt{--blue}: Chemin vers le modèle pour le joueur bleu
+  \item \texttt{--red}: Chemin vers le modèle pour le joueur rouge
+  \item \texttt{--ui}: Active l'interface graphique
+\end{itemize}
+
+\subsection{Génération de statistiques}
+Pour analyser les données générées:
+
+\begin{lstlisting}[language=bash]
+python parser.py chemin/vers/fichier.csv
+\end{lstlisting}
+
+Pour générer des cartes de chaleur:
+
+\begin{lstlisting}[language=bash]
+python heatmap.py chemin/vers/fichier.csv
+\end{lstlisting}
+
+\subsection{Mécanisme d'apprentissage}
+L'entraînement suit ces étapes:
+
+\begin{enumerate}
+  \item Initialisation des agents et de leurs réseaux
+  \item Pour chaque partie:
+    \begin{enumerate}
+      \item Phase de draft pour placer les pièces
+      \item Alternance des tours entre agents
+      \item Stockage des transitions (état, action, récompense, nouvel état)
+      \item Entraînement périodique sur des mini-batchs d'expériences
+      \item Mise à jour du paramètre epsilon pour réduire l'exploration
+    \end{enumerate}
+  \item Sauvegarde des modèles entrainés
+\end{enumerate}
+
+\subsection{Améliorations possibles}
+\begin{itemize}
+  \item Optimisation des architectures de réseaux de neurones.
+  \item Remplacement de l'ui pygame par une interface web (Gradio par exemple) afin de faciliter l'utilisation.
+  \item Parallélisation de l'entraînement pour accélérer l'apprentissage (entrainement sur des batchs, threading pour les parties).
+\end{itemize}
+
+\end{document}
