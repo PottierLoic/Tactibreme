@@ -1,0 +1,151 @@
+\documentclass[]{article}
+
+\title{\textbf{Document de passation - Projet Tactibreme}}
+\author{Pottier Loïc, Gros Charlène, Mudoy Jacques, Horter Louise, Los Thomas}
+\date{\today}
+
+\usepackage{hyperref}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\newpage
+
+\section{Introduction et vue d'ensemble}
+
+Ce document a pour objectif de faciliter la reprise du projet Tactibreme par une nouvelle équipe. Il présente l'état actuel du projet, sa structure, ainsi que les pistes d'amélioration et les points à revoir.
+
+Tactibreme est un projet dédié à l'implémentation et l'entraînement d'une intelligence artificielle pour le jeu de plateau "Les tacticiens de Brême". L'objectif principal est de développer des agents utilisant l'apprentissage par renforcement pour maîtriser les règles et stratégies de ce jeu.
+
+\subsection{Documentation existante}
+
+Avant de poursuivre la lecture de ce document de passation, nous vous recommandons de consulter la documentation déjà disponible:
+
+\begin{itemize}
+  \item \textbf{Documentation technique} (\texttt{document/tech.tex}): Présentation complète du projet, de son architecture et de son fonctionnement. Elle couvre les technologies utilisées, l'architecture globale et les instructions d'utilisation.
+  \item \textbf{Documentation IA} (\texttt{document/ai.tex}): Document spécifique détaillant l'implémentation des réseaux de neurones et des algorithmes d'apprentissage par renforcement. Ce document explique en détail les deux modèles (jeu principal et draft) ainsi que leurs mécanismes spécifiques.
+  \item \textbf{README.md}: Instructions rapides pour l'installation et l'utilisation basique.
+\end{itemize}
+
+\section{État actuel du projet}
+
+\subsection{Fonctionnalités implémentées}
+
+Le projet dispose actuellement des fonctionnalités suivantes:
+
+\begin{itemize}
+  \item \textbf{Moteur de jeu}: Implémentation complète des règles du jeu "Les tacticiens de Brême"
+
+  \item \textbf{Systèmes d'IA}:
+    \begin{itemize}
+      \item Agent pour la phase principale de jeu
+      \item Agent pour la phase de draft (placement initial)
+      \item Architectures de réseaux de neurones adaptées pour les deux phases
+    \end{itemize}
+
+  \item \textbf{Entraînement}:
+    \begin{itemize}
+      \item Apprentissage par renforcement (Deep Q-Learning)
+      \item Mécanisme d'experience replay
+      \item Politique epsilon-greedy pour l'équilibre exploration-exploitation
+    \end{itemize}
+
+  \item \textbf{Outils d'analyse}:
+    \begin{itemize}
+      \item Enregistrement des parties au format CSV
+      \item Génération de statistiques et analyses
+      \item Visualisation sous forme de cartes de chaleur
+    \end{itemize}
+
+  \item \textbf{Interface utilisateur}: Interface graphique basique permettant de visualiser les parties
+\end{itemize}
+
+\section{Pistes d'amélioration}
+
+Voici quelques pistes d'amélioration que la nouvelle équipe pourrait explorer:
+
+\subsection{Architecture et implémentation}
+
+\begin{itemize}
+  \item \textbf{Optimisation des réseaux de neurones}:
+    \begin{itemize}
+      \item Tester différentes architectures (réseaux résiduels, attention, etc.)
+      \item Optimiser les hyperparamètres des réseaux
+      \item Expérimenter avec différentes tailles de couches
+    \end{itemize}
+
+  \item \textbf{Algorithmes d'apprentissage avancés}:
+    \begin{itemize}
+      \item Implémenter des méthodes d'apprentissage plus récentes (A3C, PPO, etc.)
+      \item Ajouter un mécanisme d'experience replay prioritaire
+      \item Expérimenter avec des fonctions de récompense plus sophistiquées
+    \end{itemize}
+
+  \item \textbf{Optimisations de performance}:
+    \begin{itemize}
+      \item Parallélisation de l'entraînement
+      \item Optimisation du code pour réduire les temps de calcul
+      \item Support multi-GPU pour l'entraînement
+    \end{itemize}
+\end{itemize}
+
+\subsection{Interface utilisateur et expérience utilisateur}
+
+\begin{itemize}
+  \item \textbf{Interface utilisateur améliorée}:
+    \begin{itemize}
+      \item Remplacer Pygame par une interface web (e.g., Gradio)
+      \item Améliorer les visualisations et les animations
+      \item Ajouter des fonctionnalités pour faciliter l'analyse des parties
+    \end{itemize}
+
+  \item \textbf{Mode de jeu joueur contre IA}:
+    \begin{itemize}
+      \item Implémenter une interface conviviale pour jouer contre les modèles entraînés
+      \item BLABLA
+    \end{itemize}
+\end{itemize}
+
+\subsection{Collecte et analyse de données}
+
+\begin{itemize}
+  \item \textbf{Amélioration des outils d'analyse}:
+    \begin{itemize}
+      \item Développer des visualisations plus avancées
+      \item Ajouter des métriques supplémentaires pour évaluer les performances
+      \item Créer un tableau de bord pour suivre les progrès de l'entraînement
+    \end{itemize}
+
+  \item \textbf{Auto-évaluation des modèles}:
+    \begin{itemize}
+      \item Organiser des tournois automatiques entre différentes versions des modèles
+      \item Implémenter un système d'évaluation ELO
+    \end{itemize}
+\end{itemize}
+
+\section{Points à revoir}
+
+
+\begin{itemize}
+  \item La fonction de récompense pourrait être améliorée pour offrir un signal plus riche pendant l'apprentissage. Actuellement, elle est principalement basée sur les victoires/défaites.
+  \item blabla % TODO avec les trucs pas biens qu'il serait important de corriger
+\end{itemize}
+
+\section{Conseils pour la continuation du projet}
+
+Pour reprendre efficacement ce projet, nous recommandons à la nouvelle équipe de:
+
+\begin{itemize}
+  \item \textbf{Commencer par comprendre la base de code}: Prenez le temps d'explorer les différents modules et de comprendre leur fonctionnement, en vous appuyant sur la documentation existante.
+  \item \textbf{Expérimenter avec l'entraînement}: Commencez par lancer quelques entraînements avec différents paramètres pour vous familiariser avec le système.
+  \item \textbf{Maintenir une bonne couverture de tests}: Les modifications du moteur de jeu ou des algorithmes d'apprentissage peuvent facilement introduire des régressions.
+\end{itemize}
+
+\section{Conclusion}
+
+Le projet Tactibreme offre une base solide pour l'exploration de l'apprentissage par renforcement dans le contexte des jeux de plateau. Bien que fonctionnel dans son état actuel, il présente de nombreuses opportunités d'amélioration et d'extension. Nous espérons que ce document facilitera la prise en main du projet par la nouvelle équipe et permettra une transition en douceur.
+
+\end{document}
