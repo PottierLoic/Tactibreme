@@ -2,7 +2,6 @@
 
 \title{\textbf{Document de passation - Projet Tactibreme}}
 \author{Pottier Loïc, Gros Charlène, Mudoy Jacques, Horter Louise, Los Thomas}
-\date{\today}
 
 \usepackage{hyperref}
 
@@ -18,16 +17,16 @@
 
 Ce document a pour objectif de faciliter la reprise du projet Tactibreme par une nouvelle équipe. Il présente l'état actuel du projet, sa structure, ainsi que les pistes d'amélioration et les points à revoir.
 
-Tactibreme est un projet dédié à l'implémentation et l'entraînement d'une intelligence artificielle pour le jeu de plateau "Les tacticiens de Brême". L'objectif principal est de développer des agents utilisant l'apprentissage par renforcement pour maîtriser les règles et stratégies de ce jeu.
+Tactibreme est un projet dédié à l'implémentation et l'entraînement d'une intelligence artificielle pour le jeu de plateau "Les tacticiens de Brême". L'objectif principal est de développer des agents utilisant l'apprentissage par renforcement pour maîtriser les règles et trouver les stratégies de ce jeu si elles existent.
 
 \subsection{Documentation existante}
 
-Avant de poursuivre la lecture de ce document de passation, nous vous recommandons de consulter la documentation déjà disponible:
+Avant de poursuivre la lecture de ce document, nous vous recommandons de consulter la documentation déjà disponible:
 
 \begin{itemize}
-  \item \textbf{Documentation technique} (\texttt{document/tech.tex}): Présentation complète du projet, de son architecture et de son fonctionnement. Elle couvre les technologies utilisées, l'architecture globale et les instructions d'utilisation.
-  \item \textbf{Documentation IA} (\texttt{document/ai.tex}): Document spécifique détaillant l'implémentation des réseaux de neurones et des algorithmes d'apprentissage par renforcement. Ce document explique en détail les deux modèles (jeu principal et draft) ainsi que leurs mécanismes spécifiques.
-  \item \textbf{README.md}: Instructions rapides pour l'installation et l'utilisation basique.
+  \item \textbf{Documentation technique} (\texttt{document/tech.pdf}): Présentation complète du projet, de son architecture et de son fonctionnement. Elle couvre les technologies utilisées, l'architecture globale et les instructions d'utilisation.
+  \item \textbf{Documentation IA} (\texttt{document/ai.tex}): Document spécifique détaillant l'implémentation des réseaux de neurones et des algorithmes d'apprentissage par renforcement. Ce document explique en détail les deux modèles (jeu principal et \emph{draft}) ainsi que leurs mécanismes spécifiques.
+  \item \texttt{README.md}: Instructions rapides pour l'installation et l'utilisation basique.
 \end{itemize}
 
 \section{État actuel du projet}
@@ -37,19 +36,19 @@ Avant de poursuivre la lecture de ce document de passation, nous vous recommando
 Le projet dispose actuellement des fonctionnalités suivantes:
 
 \begin{itemize}
-  \item \textbf{Moteur de jeu}: Implémentation complète des règles du jeu "Les tacticiens de Brême"
+  \item \textbf{Moteur de jeu}: Implémentation complète des règles du jeu "Les tacticiens de Brême".
 
   \item \textbf{Systèmes d'IA}:
     \begin{itemize}
       \item Agent pour la phase principale de jeu
-      \item Agent pour la phase de draft (placement initial)
+      \item Agent pour la phase de \emph{draft} (placement initial)
       \item Architectures de réseaux de neurones adaptées pour les deux phases
     \end{itemize}
 
   \item \textbf{Entraînement}:
     \begin{itemize}
       \item Apprentissage par renforcement (Deep Q-Learning)
-      \item Mécanisme d'experience replay
+      \item Mécanisme d'expérience replay
       \item Politique epsilon-greedy pour l'équilibre exploration-exploitation
     \end{itemize}
 
@@ -60,7 +59,7 @@ Le projet dispose actuellement des fonctionnalités suivantes:
       \item Visualisation sous forme de cartes de chaleur
     \end{itemize}
 
-  \item \textbf{Interface utilisateur}: Interface graphique basique permettant de visualiser les parties
+  \item \textbf{Interface utilisateur}: Interface graphique pygame basique permettant de visualiser les parties
 \end{itemize}
 
 \section{Pistes d'amélioration}
@@ -105,7 +104,6 @@ Voici quelques pistes d'amélioration que la nouvelle équipe pourrait explorer:
   \item \textbf{Mode de jeu joueur contre IA}:
     \begin{itemize}
       \item Implémenter une interface conviviale pour jouer contre les modèles entraînés
-      \item BLABLA
     \end{itemize}
 \end{itemize}
 
@@ -131,7 +129,8 @@ Voici quelques pistes d'amélioration que la nouvelle équipe pourrait explorer:
 
 \begin{itemize}
   \item La fonction de récompense pourrait être améliorée pour offrir un signal plus riche pendant l'apprentissage. Actuellement, elle est principalement basée sur les victoires/défaites.
-  \item blabla % TODO avec les trucs pas biens qu'il serait important de corriger
+  \item Ajouter une certification du code du jeu (avec des assertions par exemple) pour assurer la justesse par rapport aux règles du jeu.
+  \item Ajouter davantage de tests sur les statistiques et les fonctionnalités clés.
 \end{itemize}
 
 \section{Conseils pour la continuation du projet}
