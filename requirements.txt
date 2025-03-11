@@ -1,3 +1,5 @@
 pygame
 tqdm
 torch
+seaborn
+pandas
