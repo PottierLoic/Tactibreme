@@ -33,14 +33,35 @@
   (\lay==5 ? 3 :     % Flatten
   (\lay<8 ? 4 : 5))))} % Dense + Output
 
-\title{\textbf{Document IA (faut trouver mieux comme nom)}} % TODO
-\author{Pottier Loïc, Gros Charlène, Mudoy Jacques, Horter Louise, Los Thomas}
-\date{\today}
-
 \begin{document}
 
-\maketitle
+\begin{titlepage}
+  \centering
 
+  \vspace*{4cm}
+
+  \Huge
+  \textbf{Tactibrême}
+
+  \vspace{1cm}
+
+  \huge
+  \textbf{Agents et Réseaux de Neurones}
+
+  \vfill
+
+  \Large
+  \textbf{Auteurs:} Gros Charlène, Pottier Loïc, Mudoy Jacques, Horter Louise, Los Thomas, Gambier Clément
+
+  \vspace{1cm}
+
+  \textbf{Date de rendu:} \today
+  
+\end{titlepage}
+
+\tableofcontents
+
+\newpage
 
 \section{Introduction}
 Ce document fournit une présentation détaillée des architectures de réseaux de neurones utilisées pour jouer au jeu de plateau `Les tacticiens de Brême`. Il couvre la représentation des données d'entrée, le codage des sorties, le fonctionnement de l'apprentissage par renforcement profond (\textit{Deep Q-Learning}) ainsi que les différentes couches du réseau.
