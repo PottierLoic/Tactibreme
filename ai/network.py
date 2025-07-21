@@ -6,7 +6,7 @@ class Network(nn.Module):
         super(Network, self).__init__()
         self.input_channels = input_channels
         self.board_size = board_size
-
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.conv_layers = nn.Sequential(
             nn.Conv2d(in_channels=input_channels, out_channels=32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
@@ -21,10 +21,14 @@ class Network(nn.Module):
             nn.Flatten(),
             nn.Linear(board_size[0] * board_size[1] * 64, 128),
             nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
             nn.Linear(128, 100),
         )
+        self.to(self.device)
 
     def forward(self, x: Tensor) -> Tensor:
+        x = x.to(self.device)
         features = self.conv_layers(x)
         output = self.fc_layers(features)
         return output

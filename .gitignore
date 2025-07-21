@@ -175,5 +175,10 @@ cython_debug/
 # Latex generated files
 document/*.log
 document/*.aux
-document/*.pdf
 document/*.out
+
+# logs
+logs/
+
+*.pth
+*.csv
