@@ -1,0 +1,58 @@
+\documentclass{article}
+\usepackage{graphicx}
+
+\title{Doc technique}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+
+\section{Combien d'IA}
+une seule pour tout ?
+vraiment different truc et formats d'entree/sortie pour init le jeu et jouer ducoup yen a 2
+
+\subsection{Jeu}
+Début : une IA qui joue contre elle meme -> stagne (donner des data)
+Le probleme -> elle change de place pour jouer contre elle meme ducoup elle a des reward pour ladversaire.
+-> il en faut deux
+
+\subsection{Placement des pieces}
+Faire une ia en plus
+
+\section{Comment savoir combien de couches}
+optuna, hyperopt...
+
+jeu:
+2 ia rouge vs bleu qui joue toujours du meme coté
+2 ia rouge vs bleu qui alterne le coté - on normalise le plateau (retourne le plateau + inverse couleurs)
+1 ia qui joue contre lui meme -> stagne
+
+recompences:
+moves invalides acceptés -> malus
+filtrage des moves invalides (recompense que victoire)
+recompenser des moves precis (rempiler 3 ...)
+
+opti:
+paralleliser l'entrainement
+batcher les inputs/outputs
+l'idee de loïc
+
+\section{man avec les record + train}
+
+\section{fichiers crees}
+csv des moves
+logs
+checkpoint
+fichier de stats
+
+\section{Trucs réalisés}
+jeu
+Ia qui joue
+truc qui analyse les games déja jouees
+ui
+ia de placement
+
+\end{document}

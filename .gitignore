@@ -170,6 +170,13 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+*/.DS_Store
+
+# Latex generated files
+document/*.log
+document/*.aux
+document/*.out
+
 # logs
 logs/
 
